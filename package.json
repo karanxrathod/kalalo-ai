@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "test:tools": "node scripts/test-all-tools.mjs",
     "verify:mcp": "node scripts/verify-mcp-connection.mjs",
+    "verify:supabase": "node scripts/verify-supabase.mjs",
     "generate:sample": "node scripts/generate-sample.mjs"
   },
   "keywords": [
