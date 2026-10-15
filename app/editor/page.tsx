@@ -371,12 +371,13 @@ function EditorContent() {
         .then((res) => res.json())
         .then((data: any) => {
           const p: Project | undefined = data?.project || data;
-          if (p && p.filePath) {
-            setMediaPath(p.filePath);
-            setFileName(p.fileName);
-            setDuration(p.durationSeconds);
-            setTrimEnd(p.durationSeconds);
-            setStreamUrl(p.streamUrl || `/api/media/stream?path=${encodeURIComponent(p.filePath)}`);
+          if (p && (p.filePath || p.streamUrl || (p as any).fileUrl || (p as any).storagePath)) {
+            const effectivePath = p.filePath || (p as any).storagePath || p.streamUrl || "";
+            setMediaPath(effectivePath);
+            setFileName(p.fileName || "video.mp4");
+            setDuration(p.durationSeconds || 5.4);
+            setTrimEnd(p.durationSeconds || 5.4);
+            setStreamUrl(p.streamUrl || (p as any).fileUrl || `/api/media/stream?path=${encodeURIComponent(effectivePath)}`);
             if (p.aspectRatio) setAspectRatio(p.aspectRatio);
             if (p.presetId) {
               setSelectedPresetId(p.presetId);
@@ -391,11 +392,11 @@ function EditorContent() {
             }
 
             if (Array.isArray(p.segments) && p.segments.length > 0) {
-              const normalized = CaptionsService.normalizeSegments(p.segments, p.durationSeconds);
+              const normalized = CaptionsService.normalizeSegments(p.segments, p.durationSeconds || 5.4);
               setSegments(normalized);
               setSelectedSegmentId(normalized[0].id);
-            } else {
-              triggerTranscription(p.filePath, p.id);
+            } else if (effectivePath) {
+              triggerTranscription(effectivePath, p.id);
             }
           }
         })
@@ -706,7 +707,7 @@ function EditorContent() {
     setExportModalOpen(true);
     setExporting(true);
     try {
-      const res = await fetch("/api/subtitles/export", {
+      const res = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -730,7 +731,7 @@ function EditorContent() {
     setExportFormat(format);
     setExporting(true);
     try {
-      const res = await fetch("/api/subtitles/export", {
+      const res = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
