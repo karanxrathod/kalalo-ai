@@ -18,6 +18,8 @@ import {
   Sparkles,
   ArrowRight,
   ExternalLink,
+  Database,
+  Cloud,
 } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 
@@ -33,6 +35,32 @@ interface DiagnosticsData {
     mcpServer: { healthy: boolean; protocol: string; toolsCount: number };
     ffmpeg: { healthy: boolean; version?: string; path: string; error?: string };
     ffprobe: { healthy: boolean; version?: string; path: string; error?: string };
+    supabase?: {
+      configured: boolean;
+      connected: boolean;
+      urlConfigured: boolean;
+      hasAnonKey: boolean;
+      hasServiceRoleKey: boolean;
+      tables: {
+        profiles: boolean;
+        projects: boolean;
+        caption_segments: boolean;
+        jobs: boolean;
+        user_settings: boolean;
+      };
+      storageBucket: {
+        name: string;
+        exists: boolean;
+      };
+      error: string | null;
+    };
+    gemini?: {
+      provider: string;
+      model: string;
+      hasApiKey: boolean;
+      ready: boolean;
+      mode: string;
+    };
     sttProvider: {
       activeProvider: string;
       model: string;
@@ -54,6 +82,12 @@ interface DiagnosticsData {
       completed: number;
       running: number;
     };
+    vercelEnvironment?: Array<{
+      name: string;
+      status: string;
+      required: boolean;
+      description: string;
+    }>;
   };
 }
 
@@ -167,6 +201,109 @@ export default function DiagnosticsPage() {
                 </div>
               </div>
 
+              {/* Supabase Cloud & Gemini STT Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Supabase Cloud Card */}
+                <div className="p-5 rounded-2xl bg-surface/70 border border-border flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4 text-emerald-400" />
+                        <h3 className="font-bold text-white text-sm">Supabase PostgreSQL & Storage</h3>
+                      </div>
+                      {data.services.supabase?.connected ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Connected
+                        </span>
+                      ) : data.services.supabase?.configured ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Configured (Checking)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/10 text-slate-400 border border-slate-500/20 flex items-center gap-1">
+                          Local Fallback Mode
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+                      Primary cloud database for user profiles, projects, caption segments, durable jobs, and the private{" "}
+                      <code className="text-emerald-400 bg-emerald-950/40 px-1 py-0.5 rounded">kalalo-media</code> storage bucket.
+                    </p>
+
+                    {data.services.supabase?.configured ? (
+                      <div className="space-y-2 text-xs font-mono">
+                        <div className="p-2.5 rounded-lg bg-black/60 border border-border">
+                          <div className="text-[10px] text-slate-500 uppercase mb-1">Database Tables Verified:</div>
+                          <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                            <span className={data.services.supabase.tables.profiles ? "text-emerald-400" : "text-amber-400"}>
+                              • profiles: {data.services.supabase.tables.profiles ? "✓" : "✗"}
+                            </span>
+                            <span className={data.services.supabase.tables.projects ? "text-emerald-400" : "text-amber-400"}>
+                              • projects: {data.services.supabase.tables.projects ? "✓" : "✗"}
+                            </span>
+                            <span className={data.services.supabase.tables.caption_segments ? "text-emerald-400" : "text-amber-400"}>
+                              • caption_segments: {data.services.supabase.tables.caption_segments ? "✓" : "✗"}
+                            </span>
+                            <span className={data.services.supabase.tables.jobs ? "text-emerald-400" : "text-amber-400"}>
+                              • jobs: {data.services.supabase.tables.jobs ? "✓" : "✗"}
+                            </span>
+                            <span className={data.services.supabase.tables.user_settings ? "text-emerald-400" : "text-amber-400"}>
+                              • user_settings: {data.services.supabase.tables.user_settings ? "✓" : "✗"}
+                            </span>
+                            <span className={data.services.supabase.storageBucket.exists ? "text-emerald-400" : "text-amber-400"}>
+                              • kalalo-media: {data.services.supabase.storageBucket.exists ? "✓" : "check"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-black/60 border border-slate-800 text-[11px] text-slate-400">
+                        Supabase environment variables not detected in this runtime. Running on local JSON persistence engine.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Gemini STT Card */}
+                <div className="p-5 rounded-2xl bg-surface/70 border border-border flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-400" />
+                        <h3 className="font-bold text-white text-sm">Google Gemini AI Engine</h3>
+                      </div>
+                      {data.services.gemini?.hasApiKey ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Ready
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                          Key Needed
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+                      Powers multilingual timestamped speech recognition for English, Hindi, Hinglish, Marathi, and Tamil with automated model fallback.
+                    </p>
+
+                    <div className="space-y-2 text-xs font-mono">
+                      <div className="p-2.5 rounded-lg bg-black/60 border border-border flex items-center justify-between">
+                        <span className="text-slate-500 text-[11px]">Primary Model:</span>
+                        <span className="text-purple-300 font-bold">{data.services.gemini?.model || "gemini-1.5-flash"}</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-black/60 border border-border flex items-center justify-between">
+                        <span className="text-slate-500 text-[11px]">API Key Status:</span>
+                        <span className={data.services.gemini?.hasApiKey ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                          {data.services.gemini?.hasApiKey ? "Configured & Active" : "Missing (Enter in Settings)"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Service Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* 1. FFmpeg Card */}
@@ -270,50 +407,12 @@ export default function DiagnosticsPage() {
                   </div>
                 </div>
 
-                {/* 4. Speech-to-Text Engine */}
-                <div className="p-5 rounded-2xl bg-surface/70 border border-border">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      <h3 className="font-bold text-white text-sm">Speech-to-Text Provider</h3>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                      {data.services.sttProvider.activeProvider.toUpperCase()}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-400 mb-3 leading-relaxed">
-                    Mode: <strong className="text-white">{data.services.sttProvider.mode}</strong>
-                  </p>
-
-                  <div className="space-y-2 text-xs font-mono">
-                    <div className="p-2.5 rounded-lg bg-black/60 border border-border flex items-center justify-between">
-                      <span className="text-slate-500 text-[11px]">Model:</span>
-                      <span className="text-slate-200">{data.services.sttProvider.model}</span>
-                    </div>
-                    <div className="p-2.5 rounded-lg bg-black/60 border border-border flex items-center justify-between">
-                      <span className="text-slate-500 text-[11px]">OpenAI API Key:</span>
-                      <span
-                        className={
-                          data.services.sttProvider.hasApiKey
-                            ? "text-emerald-400 font-bold"
-                            : "text-slate-400"
-                        }
-                      >
-                        {data.services.sttProvider.hasApiKey
-                          ? "Configured (Hidden)"
-                          : "Not Set (Using Mock Engine)"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5. Storage Directories */}
+                {/* 4. Storage Directories */}
                 <div className="p-5 rounded-2xl bg-surface/70 border border-border">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <HardDrive className="w-4 h-4 text-primary" />
-                      <h3 className="font-bold text-white text-sm">Storage Directories</h3>
+                      <h3 className="font-bold text-white text-sm">Local Storage & Scratch</h3>
                     </div>
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       Writable
@@ -335,64 +434,61 @@ export default function DiagnosticsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* 6. Jobs Execution Stats */}
+              {/* Vercel Environment Variables Audit */}
+              {data.services.vercelEnvironment && (
                 <div className="p-5 rounded-2xl bg-surface/70 border border-border">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-primary" />
-                      <h3 className="font-bold text-white text-sm">Jobs Engine</h3>
+                      <Cloud className="w-4 h-4 text-sky-400" />
+                      <h3 className="font-bold text-white text-sm">Vercel Environment Variables Status</h3>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      In-Memory State
-                    </span>
+                    <span className="text-xs text-slate-400">Settings → Environment Variables</span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-xs font-mono text-center">
-                    <div className="p-3 rounded-lg bg-black/60 border border-border">
-                      <span className="text-slate-500 block text-[10px]">Total Jobs</span>
-                      <span className="text-base font-bold text-white">
-                        {data.services.jobs.total}
-                      </span>
-                    </div>
-                    <div className="p-3 rounded-lg bg-black/60 border border-border">
-                      <span className="text-slate-500 block text-[10px]">Completed</span>
-                      <span className="text-base font-bold text-emerald-400">
-                        {data.services.jobs.completed}
-                      </span>
-                    </div>
-                    <div className="p-3 rounded-lg bg-black/60 border border-border">
-                      <span className="text-slate-500 block text-[10px]">Running</span>
-                      <span className="text-base font-bold text-primary">
-                        {data.services.jobs.running}
-                      </span>
-                    </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs font-mono">
+                      <thead>
+                        <tr className="border-b border-border text-slate-400">
+                          <th className="pb-2 font-semibold">Variable Name</th>
+                          <th className="pb-2 font-semibold">Requirement</th>
+                          <th className="pb-2 font-semibold">Current State</th>
+                          <th className="pb-2 font-semibold">Purpose</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {data.services.vercelEnvironment.map((item) => (
+                          <tr key={item.name} className="hover:bg-white/[0.02]">
+                            <td className="py-2.5 font-bold text-slate-200">{item.name}</td>
+                            <td className="py-2.5">
+                              {item.required ? (
+                                <span className="text-amber-400 text-[10px] font-bold">REQUIRED</span>
+                              ) : (
+                                <span className="text-slate-500 text-[10px]">OPTIONAL</span>
+                              )}
+                            </td>
+                            <td className="py-2.5">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  item.status === "CONFIGURED"
+                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    : item.status.startsWith("DEFAULT")
+                                    ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                    : "bg-red-500/10 text-red-400 border border-red-500/20"
+                                }`}
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="py-2.5 text-slate-400 text-[11px] font-sans">{item.description}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </div>
-
-              {/* Instructions on Enabling OpenAI Whisper */}
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/20">
-                <div className="flex items-start gap-3">
-                  <FileCode className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-bold text-sm text-white">
-                      Switching between Mock and Real OpenAI Whisper
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      By default, Kalalo operates in zero-config offline mode with deterministic mock
-                      transcription so you can test all video rendering and subtitle features
-                      immediately. To use real OpenAI Whisper transcription:
-                    </p>
-                    <div className="mt-2.5 p-3 rounded-xl bg-black/80 font-mono text-[11px] text-slate-300 border border-slate-800 space-y-1">
-                      <p className="text-slate-500"># In your .env file:</p>
-                      <p className="text-primary">KALALO_STT_PROVIDER=openai</p>
-                      <p className="text-primary">OPENAI_API_KEY=sk-proj-your-key-here</p>
-                      <p className="text-slate-500"># Then restart the dev server: npm run dev</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </main>

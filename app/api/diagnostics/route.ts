@@ -4,6 +4,9 @@ import { resolveFfmpegPath, resolveFfprobePath, spawnSafe } from "@/src/utils/pr
 import { PresetsService } from "@/src/presets/presets";
 import { JobsService } from "@/src/services/jobs.service";
 import { env } from "@/src/config/env";
+import { isSupabaseConfigured } from "@/src/lib/supabase/client";
+import { getSupabaseAdminClient, getSupabaseServerClient } from "@/src/lib/supabase/server";
+import { SettingsService } from "@/src/services/settings.service";
 
 export async function GET() {
   const timestamp = new Date().toISOString();
@@ -42,19 +45,131 @@ export async function GET() {
     ffprobeStatus.error = err instanceof Error ? err.message : String(err);
   }
 
-  // 3. Check Presets
+  // 3. Check Supabase Connectivity, Tables & Storage Bucket
+  const supabaseConfigured = isSupabaseConfigured();
+  const supabaseHealth = {
+    configured: supabaseConfigured,
+    connected: false,
+    urlConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 20),
+    hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.length > 20),
+    tables: {
+      profiles: false,
+      projects: false,
+      caption_segments: false,
+      jobs: false,
+      user_settings: false,
+    },
+    storageBucket: {
+      name: "kalalo-media",
+      exists: false,
+    },
+    error: null as string | null,
+  };
+
+  if (supabaseConfigured) {
+    try {
+      const supabase = getSupabaseAdminClient() || getSupabaseServerClient();
+      if (supabase) {
+        const [pRes, prRes, cRes, jRes, uRes] = await Promise.all([
+          supabase.from("profiles").select("id", { count: "exact", head: true }),
+          supabase.from("projects").select("id", { count: "exact", head: true }),
+          supabase.from("caption_segments").select("id", { count: "exact", head: true }),
+          supabase.from("jobs").select("id", { count: "exact", head: true }),
+          supabase.from("user_settings").select("user_id", { count: "exact", head: true }),
+        ]);
+
+        supabaseHealth.tables.profiles = !pRes.error;
+        supabaseHealth.tables.projects = !prRes.error;
+        supabaseHealth.tables.caption_segments = !cRes.error;
+        supabaseHealth.tables.jobs = !jRes.error;
+        supabaseHealth.tables.user_settings = !uRes.error;
+
+        // Check storage buckets
+        const { data: buckets, error: bError } = await supabase.storage.listBuckets();
+        if (!bError && buckets) {
+          supabaseHealth.storageBucket.exists = buckets.some(
+            (b: any) => b.id === "kalalo-media" || b.name === "kalalo-media"
+          );
+        }
+
+        supabaseHealth.connected = !pRes.error && !prRes.error;
+      }
+    } catch (err: unknown) {
+      supabaseHealth.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  // 4. Check Gemini AI & STT Provider
+  const geminiApiKey = SettingsService.getGeminiApiKey();
+  const hasGeminiKey = Boolean(geminiApiKey && geminiApiKey.trim().length > 0);
+  const geminiStatus = {
+    provider: env.KALALO_STT_PROVIDER || "gemini",
+    model: env.KALALO_GEMINI_MODEL || "gemini-1.5-flash",
+    hasApiKey: hasGeminiKey,
+    ready: hasGeminiKey || env.KALALO_STT_PROVIDER === "mock",
+    mode: hasGeminiKey
+      ? "Production Google Gemini Multilingual STT"
+      : env.KALALO_STT_PROVIDER === "mock"
+      ? "Offline Demo Mock Engine"
+      : "API Key Required",
+  };
+
+  // 5. Check Presets
   const presets = PresetsService.listPresets();
 
-  // 4. Check Provider & Keys
-  const provider = env.KALALO_STT_PROVIDER;
-  const hasOpenAiKey = Boolean(env.OPENAI_API_KEY && env.OPENAI_API_KEY.trim().length > 0);
-
-  // 5. Check Directories
+  // 6. Check Directories
   const outputDirWritable = fs.existsSync(env.outputDir);
   const tempDirWritable = fs.existsSync(env.tempDir);
 
-  // 6. Check Jobs
+  // 7. Check Jobs
   const jobs = JobsService.listJobs();
+
+  // 8. Required Vercel Environment Variables Status
+  const vercelEnvironment = [
+    {
+      name: "NEXT_PUBLIC_SUPABASE_URL",
+      status: process.env.NEXT_PUBLIC_SUPABASE_URL ? "CONFIGURED" : "MISSING",
+      required: true,
+      description: "Supabase Project URL (Dashboard -> Settings -> API)",
+    },
+    {
+      name: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      status: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "CONFIGURED" : "MISSING",
+      required: true,
+      description: "Supabase Anonymous Key for client-side Auth and RLS",
+    },
+    {
+      name: "SUPABASE_SERVICE_ROLE_KEY",
+      status: process.env.SUPABASE_SERVICE_ROLE_KEY ? "CONFIGURED" : "MISSING",
+      required: true,
+      description: "Supabase Service Role Key for server-side elevated DB & Storage",
+    },
+    {
+      name: "GEMINI_API_KEY",
+      status: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY ? "CONFIGURED" : "MISSING",
+      required: true,
+      description: "Google Gemini API Key for precision video transcription",
+    },
+    {
+      name: "JWT_SECRET",
+      status: process.env.JWT_SECRET || process.env.KALALO_SECRET_KEY ? "CONFIGURED" : "DEFAULT",
+      required: false,
+      description: "Secret string for signing auth session cookies",
+    },
+    {
+      name: "KALALO_SECRET_KEY",
+      status: process.env.KALALO_SECRET_KEY ? "CONFIGURED" : "DEFAULT",
+      required: false,
+      description: "AES encryption key for storing user credentials at rest",
+    },
+    {
+      name: "KALALO_GEMINI_MODEL",
+      status: process.env.KALALO_GEMINI_MODEL ? "CONFIGURED" : "DEFAULT (gemini-1.5-flash)",
+      required: false,
+      description: "Gemini model identifier",
+    },
+  ];
 
   return NextResponse.json({
     timestamp,
@@ -72,11 +187,13 @@ export async function GET() {
       },
       ffmpeg: ffmpegStatus,
       ffprobe: ffprobeStatus,
+      supabase: supabaseHealth,
+      gemini: geminiStatus,
       sttProvider: {
-        activeProvider: provider,
-        model: env.KALALO_STT_MODEL || (provider === "openai" ? "whisper-1" : "mock-engine"),
-        hasApiKey: hasOpenAiKey,
-        mode: provider === "mock" ? "Offline Demo (No API key needed)" : "Real OpenAI API",
+        activeProvider: geminiStatus.provider,
+        model: geminiStatus.model,
+        hasApiKey: geminiStatus.hasApiKey,
+        mode: geminiStatus.mode,
       },
       presets: {
         count: presets.length,
@@ -93,6 +210,7 @@ export async function GET() {
         completed: jobs.filter((j) => j.status === "completed").length,
         running: jobs.filter((j) => j.status === "running").length,
       },
+      vercelEnvironment,
     },
   });
 }
