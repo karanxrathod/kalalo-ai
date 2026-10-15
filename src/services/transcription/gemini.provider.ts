@@ -45,24 +45,25 @@ export class GeminiTranscriptionProvider implements TranscriptionProvider {
       });
     }
 
-    input.onProgress?.({ stage: "inspecting_media", progress: 10 });
-    const mediaMeta = await MediaService.inspectMedia(input.inputPath);
-    if (!mediaMeta.hasAudio) {
-      throw new KalaloError({
-        code: "UNSUPPORTED_MEDIA",
-        message: "Input media does not contain an audio stream for transcription.",
-        retryable: false,
-        details: { inputPath: input.inputPath },
-      });
-    }
-
-    const duration = mediaMeta.durationSeconds > 0 ? mediaMeta.durationSeconds : 1.0;
-    const tempDir = ensureDir(env.tempDir);
-    const tempAudioPath = path.join(tempDir, `gemini-audio-${crypto.randomUUID()}.mp3`);
-
     const { localPath, cleanup: cleanupMedia } = await ensureLocalMediaFile(input.inputPath);
+    let tempAudioPath: string | undefined = undefined;
 
     try {
+      input.onProgress?.({ stage: "inspecting_media", progress: 10 });
+      const mediaMeta = await MediaService.inspectMedia(localPath);
+      if (!mediaMeta.hasAudio) {
+        throw new KalaloError({
+          code: "UNSUPPORTED_MEDIA",
+          message: "Input media does not contain an audio stream for transcription.",
+          retryable: false,
+          details: { inputPath: input.inputPath },
+        });
+      }
+
+      const duration = mediaMeta.durationSeconds > 0 ? mediaMeta.durationSeconds : 1.0;
+      const tempDir = ensureDir(env.tempDir);
+      tempAudioPath = path.join(tempDir, `gemini-audio-${crypto.randomUUID()}.mp3`);
+
       input.onProgress?.({ stage: "extracting_audio", progress: 20 });
       const ffmpegPath = resolveFfmpegPath();
 
@@ -94,8 +95,20 @@ export class GeminiTranscriptionProvider implements TranscriptionProvider {
       const audioBuffer = await fs.readFile(tempAudioPath);
       const audioBase64 = audioBuffer.toString("base64");
 
-      const model = input.model || SettingsService.getPublicSettings().gemini.model || env.KALALO_GEMINI_MODEL || "gemini-3.5-flash-lite";
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const configuredModel =
+        input.model || SettingsService.getPublicSettings().gemini.model || env.KALALO_GEMINI_MODEL || "gemini-1.5-flash";
+
+      // Robust candidate model fallback list
+      const candidateModels = Array.from(
+        new Set([
+          configuredModel,
+          "gemini-1.5-flash",
+          "gemini-2.0-flash",
+          "gemini-3.5-flash-lite",
+          "gemini-2.5-flash",
+          "gemini-flash-latest",
+        ])
+      );
 
       // Language context bias
       let languageInstructions = "Transcribe all spoken words accurately in their original language.";
@@ -159,55 +172,63 @@ Return ONLY a structured JSON array of subtitle segments.`;
 
       input.onProgress?.({ stage: "generating_captions", progress: 65 });
 
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-        signal: input.signal,
-      });
+      let responseJson: any = null;
+      let lastErrorMsg = "";
+      let activeModelUsed = configuredModel;
 
-      const responseJson = (await res.json()) as any;
+      for (const modelCandidate of candidateModels) {
+        try {
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelCandidate}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+            signal: input.signal,
+          });
 
-      if (!res.ok) {
-        const errorMsg =
-          responseJson.error?.message || `Google Gemini API returned HTTP ${res.status}`;
-        if (res.status === 404) {
-          throw new KalaloError({
-            code: "MODEL_NOT_FOUND",
-            message: `Gemini model "${model}" is not found or is no longer supported on API v1beta. Please update your model to "gemini-3.5-flash-lite" in Settings (/settings).`,
-            retryable: false,
-            details: { model, error: responseJson.error },
-          });
+          const data = (await res.json()) as any;
+          if (res.ok) {
+            responseJson = data;
+            activeModelUsed = modelCandidate;
+            break;
+          }
+
+          lastErrorMsg = data.error?.message || `HTTP ${res.status}`;
+          // If model was 404 not found or 503 high demand, try the next candidate model
+          if (res.status === 404 || res.status === 503) {
+            console.warn(`[Gemini] Model ${modelCandidate} returned HTTP ${res.status}. Trying fallback model...`);
+            continue;
+          }
+
+          if (res.status === 400 || res.status === 403) {
+            throw new KalaloError({
+              code: "INVALID_CREDENTIALS",
+              message: `Gemini API authentication failed: ${lastErrorMsg}. Please check your GEMINI_API_KEY.`,
+              retryable: false,
+              details: { status: res.status, error: data.error },
+            });
+          }
+
+          if (res.status === 429) {
+            throw new KalaloError({
+              code: "RATE_LIMITED",
+              message: `Gemini API quota or rate limit exceeded: ${lastErrorMsg}. Please retry in a few moments.`,
+              retryable: true,
+              details: { status: res.status, error: data.error },
+            });
+          }
+        } catch (fetchErr: any) {
+          if (fetchErr instanceof KalaloError) throw fetchErr;
+          lastErrorMsg = fetchErr.message;
         }
-        if (res.status === 503) {
-          throw new KalaloError({
-            code: "SERVICE_UNAVAILABLE",
-            message: `Google Gemini servers are temporarily experiencing high demand on "${model}". Spikes in demand are temporary. Please retry in a few moments or switch to "gemini-3.5-flash-lite" in Settings.`,
-            retryable: true,
-            details: { model, error: responseJson.error },
-          });
-        }
-        if (res.status === 400 || res.status === 403) {
-          throw new KalaloError({
-            code: "INVALID_CREDENTIALS",
-            message: `Gemini API authentication failed: ${errorMsg}. Check your API key in Settings.`,
-            retryable: false,
-            details: { status: res.status, error: responseJson.error },
-          });
-        }
-        if (res.status === 429) {
-          throw new KalaloError({
-            code: "RATE_LIMITED",
-            message: `Gemini API quota or rate limit exceeded: ${errorMsg}`,
-            retryable: true,
-            details: { status: res.status, error: responseJson.error },
-          });
-        }
+      }
+
+      if (!responseJson) {
         throw new KalaloError({
           code: "TRANSCRIPTION_FAILED",
-          message: `Gemini transcription failed: ${errorMsg}`,
+          message: `Gemini transcription failed across all candidate models. Last error: ${lastErrorMsg}`,
           retryable: false,
-          details: { error: responseJson.error },
+          details: { modelsAttempted: candidateModels, lastErrorMsg },
         });
       }
 
@@ -267,7 +288,9 @@ Return ONLY a structured JSON array of subtitle segments.`;
       };
     } finally {
       // Ensure temp audio file cleanup
-      await fs.unlink(tempAudioPath).catch(() => {});
+      if (tempAudioPath) {
+        await fs.unlink(tempAudioPath).catch(() => {});
+      }
       await cleanupMedia();
     }
   }

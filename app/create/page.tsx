@@ -140,8 +140,32 @@ export default function CreateProjectPage() {
         throw new Error(data.error?.message || data.error || "Transcription failed");
       }
 
+      let projectId: string | undefined = undefined;
+      try {
+        const createProjectRes = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: mediaInfo.fileName.replace(/\.[^/.]+$/, "") || "Untitled Project",
+            fileName: mediaInfo.fileName,
+            filePath: mediaInfo.filePath,
+            streamUrl: mediaInfo.streamUrl,
+            durationSeconds: mediaInfo.media.durationSeconds,
+            aspectRatio: mediaInfo.media.video?.aspectRatio === "16:9" ? "16:9" : "9:16",
+            segments: data.segments,
+          }),
+        });
+        if (createProjectRes.ok) {
+          const projectData = await createProjectRes.json();
+          projectId = projectData.project?.id;
+        }
+      } catch (projErr) {
+        console.warn("Could not save to projects API immediately, falling back to local session:", projErr);
+      }
+
       // Store project in sessionStorage for the Editor
       const projectSession = {
+        id: projectId,
         mediaPath: mediaInfo.filePath,
         fileName: mediaInfo.fileName,
         duration: mediaInfo.media.durationSeconds,
@@ -152,7 +176,11 @@ export default function CreateProjectPage() {
       };
 
       sessionStorage.setItem("kalalo_current_project", JSON.stringify(projectSession));
-      router.push("/editor");
+      if (projectId) {
+        router.push(`/editor?projectId=${projectId}`);
+      } else {
+        router.push("/editor");
+      }
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : String(err));
       setIsTranscribing(false);

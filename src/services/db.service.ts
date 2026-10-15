@@ -351,7 +351,7 @@ export class DbService {
       record = {
         userId,
         defaultProvider: "gemini",
-        defaultModel: "gemini-3.5-flash-lite",
+        defaultModel: "gemini-1.5-flash",
         defaultLanguage: "auto",
         defaultAspectRatio: "9:16",
         defaultPreset: "kalalo-clean-bold",

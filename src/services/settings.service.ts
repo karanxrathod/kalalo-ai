@@ -101,15 +101,15 @@ export class SettingsService {
     };
 
     return {
-      provider: current.defaultProvider || env.KALALO_STT_PROVIDER || "mock",
-      model: current.defaultModel || (current.defaultProvider === "gemini" ? (current.defaultModel || env.KALALO_GEMINI_MODEL || "gemini-3.5-flash-lite") : "whisper-1"),
+      provider: current.defaultProvider || env.KALALO_STT_PROVIDER || "gemini",
+      model: current.defaultModel || (current.defaultProvider === "gemini" ? (current.defaultModel || env.KALALO_GEMINI_MODEL || "gemini-1.5-flash") : "whisper-1"),
       language: current.defaultLanguage || env.KALALO_STT_LANGUAGE || "auto",
       aspectRatio: current.defaultAspectRatio || env.KALALO_DEFAULT_ASPECT_RATIO || "9:16",
       defaultPreset: current.defaultPreset || "kalalo-clean-bold",
       gemini: {
         hasKey: Boolean(geminiKey && geminiKey.length > 0),
         maskedKey: maskKey(geminiKey),
-        model: current.defaultModel || env.KALALO_GEMINI_MODEL || "gemini-3.5-flash-lite",
+        model: current.defaultModel || env.KALALO_GEMINI_MODEL || "gemini-1.5-flash",
       },
       openai: {
         hasKey: Boolean(openaiKey && openaiKey.length > 0),

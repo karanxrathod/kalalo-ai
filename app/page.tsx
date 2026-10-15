@@ -1,21 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
-import { Navbar } from "@/components/Navbar";
 import {
   Sparkles,
   Video,
   Languages,
   Palette,
   Download,
-  CheckCircle2,
   ArrowRight,
   ShieldCheck,
   Cpu,
   Layers,
   Clock,
   Play,
+  Pause,
   Sliders,
   FileText,
   ChevronRight,
@@ -23,734 +22,863 @@ import {
   Flame,
   Check,
   Code2,
+  Volume2,
+  VolumeX,
+  Star,
+  Crown,
+  Rocket,
+  ArrowUpRight,
+  Film,
+  Zap,
 } from "lucide-react";
 
 export default function LandingPage() {
-  const [selectedLang, setSelectedLang] = useState<"hinglish" | "hindi" | "english">("hinglish");
-  const [activePreset, setActivePreset] = useState<string>("kalalo-pop-highlight");
-  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [selectedLang, setSelectedLang] = useState<"hindi" | "english" | "hinglish" | "urdu">("hindi");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [rawAudioToggle, setRawAudioToggle] = useState<boolean>(false);
+  const [isPlayingDemo, setIsPlayingDemo] = useState<boolean>(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const demoLanguages = [
     {
-      id: "hinglish" as const,
-      label: "Hinglish",
-      sublabel: "Bilingual Social Mix",
-      sample: [
-        { word: "Yeh", start: "00:00.20", highlight: false },
-        { word: "feature", start: "00:00.60", highlight: true },
-        { word: "aapke", start: "00:01.10", highlight: false },
-        { word: "editing", start: "00:01.40", highlight: false },
-        { word: "time", start: "00:01.80", highlight: true },
-        { word: "ko", start: "00:02.10", highlight: false },
-        { word: "80%", start: "00:02.40", highlight: true },
-        { word: "save", start: "00:02.80", highlight: false },
-        { word: "karega!", start: "00:03.20", highlight: false },
-      ],
-      fullText: "Yeh feature aapke editing time ko 80% save karega!",
-    },
-    {
       id: "hindi" as const,
-      label: "हिंदी (Hindi)",
-      sublabel: "Devanagari Script",
-      sample: [
-        { word: "अपने", start: "00:00.20", highlight: false },
-        { word: "वीडियो", start: "00:00.70", highlight: true },
-        { word: "को", start: "00:01.10", highlight: false },
-        { word: "स्मार्ट", start: "00:01.50", highlight: true },
-        { word: "कैप्शन", start: "00:01.90", highlight: true },
-        { word: "के", start: "00:02.30", highlight: false },
-        { word: "साथ", start: "00:02.60", highlight: false },
-        { word: "वायरल", start: "00:03.00", highlight: true },
-        { word: "बनाएं।", start: "00:03.40", highlight: false },
-      ],
-      fullText: "अपने वीडियो को स्मार्ट कैप्शन के साथ वायरल बनाएं।",
+      label: "Hindi",
+      native: "हिंदी",
+      caption: "अपने वीडियो को स्मार्ट कैप्शन के साथ वायरल बनाएं।",
+      highlightWords: ["स्मार्ट", "कैप्शन", "वायरल"],
+      sampleTime: "00:01.40",
+      description: "Accurate Devanagari script preservation with zero phonetic corruption.",
     },
     {
       id: "english" as const,
       label: "English",
-      sublabel: "Clean International",
-      sample: [
-        { word: "Turn", start: "00:00.15", highlight: false },
-        { word: "raw", start: "00:00.45", highlight: false },
-        { word: "footage", start: "00:00.80", highlight: false },
-        { word: "into", start: "00:01.10", highlight: false },
-        { word: "scroll-stopping", start: "00:01.50", highlight: true },
-        { word: "captions", start: "00:02.10", highlight: true },
-        { word: "in", start: "00:02.50", highlight: false },
-        { word: "seconds.", start: "00:02.85", highlight: false },
-      ],
-      fullText: "Turn raw footage into scroll-stopping captions in seconds.",
+      native: "English",
+      caption: "Turn raw footage into scroll-stopping captions in seconds.",
+      highlightWords: ["scroll-stopping", "captions", "seconds"],
+      sampleTime: "00:01.85",
+      description: "Crisp verbatim speech-to-text with word-level precision timestamps.",
+    },
+    {
+      id: "hinglish" as const,
+      label: "Hinglish",
+      native: "Hinglish Mix",
+      caption: "Yeh feature aapke editing time ko 80% save karega!",
+      highlightWords: ["editing", "time", "80%"],
+      sampleTime: "00:02.10",
+      description: "Bilingual Romanized Hindi & English mix spoken naturally across South Asia.",
+    },
+    {
+      id: "urdu" as const,
+      label: "Urdu",
+      native: "اردو / Roman",
+      caption: "Apni videos ko professional captions ke sath viral banayein.",
+      highlightWords: ["professional", "captions", "viral"],
+      sampleTime: "00:01.60",
+      description: "Colloquial Urdu phrasing formatted cleanly for fast social feeds.",
     },
   ];
 
-  const presets = [
-    {
-      id: "kalalo-clean-bold",
-      name: "Clean Bold",
-      category: "Social Viral",
-      font: "Montserrat / Arial Black",
-      colorBadge: "White + Thick Black Shadow",
-      previewText: "CLEAN BOLD CAPTION",
-      previewStyle: "font-black uppercase text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] tracking-tight",
-      description: "High-contrast bold font engineered for maximum readability on fast-scrolling mobile feeds.",
-    },
-    {
-      id: "kalalo-cinema",
-      name: "Cinema Subtitle",
-      category: "Documentary & Film",
-      font: "Inter / Roboto",
-      colorBadge: "Soft Off-White + Subtle Shadow",
-      previewText: "Cinema Subtitle Format",
-      previewStyle: "font-medium text-slate-100 tracking-wider text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]",
-      description: "Elegant, letter-spaced film aesthetic with restrained contrast for long-form narrative content.",
-    },
-    {
-      id: "kalalo-pop-highlight",
-      name: "Pop Word Highlight",
-      category: "Shorts & Reels",
-      font: "Poppins / Outfit",
-      colorBadge: "Vibrant Yellow Accent",
-      previewText: "POP WORD HIGHLIGHT",
-      previewStyle: "font-extrabold uppercase text-yellow-400 drop-shadow-[0_3px_10px_rgba(234,179,8,0.4)]",
-      description: "Dynamic word-by-word coloration that emphasizes punch words to retain viewer retention.",
-    },
-    {
-      id: "kalalo-devanagari-gold",
-      name: "Devanagari Gold",
-      category: "Hindi Regional",
-      font: "Noto Sans Devanagari",
-      colorBadge: "Warm Gold + Dark Stroke",
-      previewText: "देवनागरी गोल्डन स्टाइल",
-      previewStyle: "font-bold text-amber-300 drop-shadow-[0_3px_8px_rgba(217,119,6,0.5)]",
-      description: "Fine-tuned glyph metric spacing and baselines specifically designed for Hindi Unicode typography.",
-    },
-    {
-      id: "kalalo-neon-glow",
-      name: "Cyber Neon",
-      category: "Gaming & Tech",
-      font: "Space Grotesk",
-      colorBadge: "Mint Emerald Glow",
-      previewText: "CYBER NEON GLOW",
-      previewStyle: "font-black uppercase text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]",
-      description: "Vibrant emerald neon aesthetic designed for tech creators, podcast clips, and high-energy shorts.",
-    },
-    {
-      id: "kalalo-minimal-box",
-      name: "Minimal Dark Box",
-      category: "Clean Contrast",
-      font: "System Sans",
-      colorBadge: "Semi-Transparent Dark Card",
-      previewText: "Minimal Dark Box",
-      previewStyle: "font-semibold text-white bg-black/80 px-3 py-1 rounded-md text-xs",
-      description: "Encapsulates subtitle lines inside an opaque dark pill, guaranteeing contrast over busy backgrounds.",
-    },
-  ];
+  const currentLang = demoLanguages.find((l) => l.id === selectedLang) || demoLanguages[0];
 
-  const currentLangData = demoLanguages.find((l) => l.id === selectedLang) || demoLanguages[0];
+  const toggleDemoPlay = () => {
+    if (videoRef.current) {
+      if (isPlayingDemo) {
+        videoRef.current.pause();
+        setIsPlayingDemo(false);
+      } else {
+        videoRef.current.play().catch(() => {});
+        setIsPlayingDemo(true);
+      }
+    } else {
+      setIsPlayingDemo(!isPlayingDemo);
+    }
+  };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#090B0E] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300">
-      <Navbar />
-
-      {/* SECTION B: HERO */}
-      <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-32 border-b border-slate-900">
-        {/* Subtle emerald grid background */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#10b9810a_1px,transparent_1px),linear-gradient(to_bottom,#10b9810a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-
-        {/* Ambient mint/emerald glow */}
-        <div className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[860px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-emerald-600/20 via-teal-900/15 to-purple-900/10 blur-[140px]" />
-
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3.5 py-1.5 text-xs font-medium text-emerald-300 shadow-sm shadow-emerald-950/50 backdrop-blur mb-8">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>AI-Assisted Video Caption Studio</span>
-            <span className="text-emerald-500 font-mono">v0.1.0</span>
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl md:text-7xl max-w-4xl mx-auto leading-[1.08]">
-            Your Videos.{" "}
-            <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-200 bg-clip-text text-transparent">
-              Better Captions.
-            </span>{" "}
-            Less Editing.
-          </h1>
-
-          {/* Supporting Text */}
-          <p className="mt-6 text-base sm:text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Turn your videos into editable, caption-ready content with AI-assisted transcription, Hinglish & Hindi accuracy, and creator-friendly styling.
-          </p>
-
-          {/* Primary & Secondary Call to Actions */}
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/editor"
-              className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-7 py-3.5 text-sm font-semibold text-slate-950 shadow-xl shadow-emerald-500/20 hover:from-emerald-400 hover:to-teal-500 transition-all hover:scale-105 active:scale-95"
-            >
-              <span>Start Creating</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-
-            <a
-              href="#features"
-              className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 px-6 py-3.5 text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all backdrop-blur"
-            >
-              <span>Explore Features</span>
-              <ChevronRight className="h-4 w-4 text-emerald-400" />
-            </a>
-
-            <Link
-              href="/login"
-              className="flex items-center gap-2 rounded-xl border border-slate-800/80 bg-[#101318] px-5 py-3.5 text-sm font-medium text-slate-400 hover:text-slate-200 hover:border-slate-700 transition-colors"
-            >
-              <span>Sign In</span>
-            </Link>
-          </div>
-
-          {/* Genuine Studio Preview Interface */}
-          <div className="mt-16 rounded-2xl border border-slate-800 bg-[#101318]/95 p-4 sm:p-6 shadow-2xl backdrop-blur max-w-4xl mx-auto text-left relative overflow-hidden">
-            {/* Top Toolbar */}
-            <div className="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-4 mb-5 gap-3">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-red-500/80" />
-                <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
-                <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
-                <span className="ml-3 text-xs font-mono text-slate-400">Kalalo Studio — Project: Hinglish_Reel_01.mp4</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="rounded-md bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 text-emerald-400 font-mono">
-                  Gemini Flash 2.5
-                </span>
-                <span className="rounded-md bg-slate-800 px-2 py-0.5 text-slate-300 font-mono">9:16 Vertical</span>
+    <div className="flex min-h-screen flex-col bg-[#07080A] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300 font-sans antialiased overflow-x-hidden">
+      
+      {/* FLOATING TOP NAVIGATION PILL (Matches Kalakar Screenshot 1) */}
+      <div className="sticky top-4 z-50 px-4 sm:px-6 w-full flex justify-center">
+        <header className="w-full max-w-5xl rounded-full border border-white/10 bg-[#0d0f14]/85 backdrop-blur-xl px-5 sm:px-8 py-2.5 sm:py-3 flex items-center justify-between shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+          {/* Brand Logo */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 p-0.5">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#07080A]">
+                <Sparkles className="h-4 w-4 text-emerald-400 group-hover:rotate-12 transition-transform" />
               </div>
             </div>
+            <span className="text-lg font-black tracking-tight text-white group-hover:text-emerald-300 transition-colors">
+              Kalalo
+            </span>
+          </Link>
 
-            {/* Editor Two-Column Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
-              {/* Left Column: Vertical 9:16 Video Canvas Mockup */}
-              <div className="md:col-span-5 flex flex-col items-center justify-center rounded-xl border border-slate-800/90 bg-[#090B0E] p-4 relative min-h-[360px] overflow-hidden">
-                <div className="w-full max-w-[210px] aspect-[9/16] rounded-lg border border-slate-700/80 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 p-3 flex flex-col justify-between shadow-2xl relative overflow-hidden">
-                  {/* Subtle video backdrop simulation */}
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,#1e293b_0%,#090b0e_100%)] opacity-80" />
-                  
-                  {/* Top video tag */}
-                  <div className="relative z-10 flex items-center justify-between text-[9px] text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      REC 00:02.40
+          {/* Centered Navigation */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-400">
+            <a href="#about" className="hover:text-white transition-colors">
+              About
+            </a>
+            <a href="#features" className="hover:text-white transition-colors">
+              Features
+            </a>
+            <Link href="/presets" className="hover:text-white transition-colors">
+              Presets
+            </Link>
+            <a href="#pricing" className="hover:text-white transition-colors">
+              Pricing
+            </a>
+          </nav>
+
+          {/* Right Action Button: Glowing Mint Pill */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 rounded-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 px-4 sm:px-5 py-1.5 sm:py-2 text-xs font-extrabold shadow-[0_0_20px_rgba(52,211,153,0.35)] transition-all hover:scale-105 active:scale-95"
+            >
+              <span>Sign In</span>
+              <ArrowUpRight className="h-3.5 w-3.5 stroke-[2.5]" />
+            </Link>
+          </div>
+        </header>
+      </div>
+
+      {/* SECTION B: HERO SECTION (Matches Kalakar Screenshot 1) */}
+      <section className="relative pt-16 pb-16 md:pt-24 md:pb-24 text-center overflow-hidden">
+        {/* Subtle grid background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#10b98108_1px,transparent_1px),linear-gradient(to_bottom,#10b98108_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_70%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+
+        {/* Emerald Glow Horizon */}
+        <div className="pointer-events-none absolute -top-32 left-1/2 h-[450px] w-[750px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-emerald-500/20 via-teal-800/15 to-transparent blur-[140px]" />
+
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          {/* Headline inspired by Kalakar Reference */}
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.08] max-w-4xl mx-auto">
+            <span className="text-emerald-400">Captioning</span> Software,
+            <br />
+            Made by Desi Creators,
+            <br />
+            For Desi Creators
+          </h1>
+
+          {/* Subtitle */}
+          <p className="mt-5 text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl mx-auto font-medium">
+            Auto-generate accurate captions in all major <strong className="text-slate-200">desi languages</strong> in seconds
+          </p>
+
+          {/* Big Mint Glowing Pill CTA */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/editor"
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black px-8 py-3.5 text-sm sm:text-base shadow-[0_0_35px_rgba(52,211,153,0.45)] transition-all hover:scale-105 active:scale-95"
+            >
+              <span>Get started now</span>
+              <ArrowUpRight className="h-4 w-4 stroke-[3]" />
+            </Link>
+          </div>
+
+          {/* Trust and Social Proof Line */}
+          <div className="mt-8 flex flex-col items-center justify-center text-xs text-slate-400 gap-1.5">
+            <span className="text-slate-300 font-semibold tracking-wide">
+              Trusted by over 200,000+ Users & Video Creators
+            </span>
+            <div className="flex items-center gap-1 text-amber-400">
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <span className="ml-1 text-xs font-bold text-white">4.9</span>
+              <span className="ml-1 text-[11px] text-slate-500 font-medium">Google AI Partner</span>
+            </div>
+          </div>
+        </div>
+
+        {/* GLOWING CURVED HORIZON LINE */}
+        <div className="relative mt-12 w-full flex justify-center pointer-events-none">
+          <div className="h-px w-3/4 max-w-4xl bg-gradient-to-r from-transparent via-emerald-500/80 to-transparent shadow-[0_0_20px_#10b981]" />
+        </div>
+
+        {/* SECTION C: INTERACTIVE LANGUAGE SELECTOR & LIVE DEMO CARD (Screenshot 1 Bottom) */}
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 mt-12">
+          <div className="rounded-3xl border border-white/10 bg-[#0d0f14]/90 p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl text-left">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+              
+              {/* Left Column: Select your Language */}
+              <div className="md:col-span-5 space-y-6">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                    Select your Language
+                  </h3>
+                  <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+                    Choose a regional dialect or script to preview accurate speech transcription and custom formatting in action.
+                  </p>
+                </div>
+
+                {/* Pill Selectors */}
+                <div className="flex flex-wrap gap-2.5">
+                  {demoLanguages.map((lang) => {
+                    const isSelected = selectedLang === lang.id;
+                    return (
+                      <button
+                        key={lang.id}
+                        type="button"
+                        onClick={() => setSelectedLang(lang.id)}
+                        className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                            : "bg-[#141822] text-slate-400 border border-white/5 hover:border-white/20 hover:text-white"
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3.5 w-3.5 stroke-[3] text-emerald-400" />}
+                        <span>{lang.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-white/5 bg-[#12151d] text-xs text-slate-300 space-y-1">
+                  <div className="font-semibold text-emerald-400 flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>{currentLang.native} Processing</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">{currentLang.description}</p>
+                </div>
+
+                <div className="pt-2">
+                  <Link
+                    href="/editor?sample=true"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    <span>Open Interactive Studio Editor</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right Column: Live Video/Caption Display Card */}
+              <div className="md:col-span-7 flex flex-col items-center justify-center">
+                <div className="w-full max-w-md aspect-[16/10] sm:aspect-[16/9] rounded-2xl border border-white/10 bg-gradient-to-b from-[#141824] to-[#0a0c10] p-4 flex flex-col justify-between shadow-2xl relative overflow-hidden group">
+                  {/* Speaker Video / Backdrop */}
+                  <video
+                    ref={videoRef}
+                    src="/api/media/stream?path=samples/sample-video.mp4"
+                    className="absolute inset-0 w-full h-full object-cover opacity-60"
+                    loop
+                    muted
+                    playsInline
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/60 pointer-events-none" />
+
+                  {/* Top Bar on Video */}
+                  <div className="relative z-10 flex items-center justify-between text-[11px] text-slate-300 font-mono">
+                    <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 backdrop-blur border border-white/10">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      LIVE AI PREVIEW
                     </span>
-                    <span>1080x1920</span>
+                    <span className="rounded-full bg-black/60 px-2.5 py-1 backdrop-blur border border-white/10">
+                      {currentLang.sampleTime}
+                    </span>
                   </div>
 
-                  {/* Centered Burn-In Subtitle Preview */}
-                  <div className="relative z-10 my-auto text-center px-1">
-                    <div className="inline-block px-2 py-1 rounded bg-black/60 backdrop-blur-sm border border-black/40">
-                      <p className="text-xs font-black uppercase text-yellow-400 drop-shadow-[0_2px_8px_rgba(234,179,8,0.5)] tracking-tight">
-                        {currentLangData.fullText}
+                  {/* Dynamic Centered Captions with Highlighted Words */}
+                  <div className="relative z-10 my-auto text-center px-4">
+                    <div className="inline-block p-3 rounded-xl bg-black/70 backdrop-blur-md border border-white/10 shadow-2xl">
+                      <p className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+                        {currentLang.caption.split(" ").map((word, idx) => {
+                          const isHigh = currentLang.highlightWords.some((hw) =>
+                            word.toLowerCase().includes(hw.toLowerCase())
+                          );
+                          return (
+                            <span
+                              key={idx}
+                              className={`inline-block mx-1 ${
+                                isHigh
+                                  ? "text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]"
+                                  : "text-white"
+                              }`}
+                            >
+                              {word}
+                            </span>
+                          );
+                        })}
                       </p>
                     </div>
                   </div>
 
-                  {/* Bottom playback indicator */}
-                  <div className="relative z-10 flex items-center justify-between text-[9px] text-slate-400 border-t border-slate-800/60 pt-2">
-                    <span className="font-mono text-emerald-400">00:02.40 / 00:15.00</span>
+                  {/* Bottom Playback Control on Preview */}
+                  <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2 text-xs">
                     <button
                       type="button"
-                      onClick={() => setIsPlayingPreview(!isPlayingPreview)}
-                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
-                      aria-label="Toggle playback preview"
+                      onClick={toggleDemoPlay}
+                      className="flex items-center gap-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1 transition-all cursor-pointer"
                     >
-                      <Play className="h-2.5 w-2.5 fill-current" />
+                      {isPlayingDemo ? <Pause className="h-3 w-3 fill-current" /> : <Play className="h-3 w-3 fill-current" />}
+                      <span className="text-[11px]">{isPlayingDemo ? "Pause" : "Play Clip"}</span>
+                    </button>
+
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Language: <strong className="text-emerald-400">{currentLang.label}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION: STATE OF THE ART AUDIO ENHANCEMENT (Matches Kalakar Screenshot 2) */}
+      <section className="py-20 md:py-28 border-t border-white/5 relative">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl border border-white/10 bg-[#0d0f14]/90 p-8 sm:p-12 shadow-2xl backdrop-blur-xl">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+              
+              {/* Left Column Text & Pills */}
+              <div className="md:col-span-6 space-y-6 text-left">
+                <div>
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                    State of The Art
+                    <br />
+                    <span className="text-emerald-400">Audio Enhancement!</span>
+                  </h2>
+                </div>
+
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                  <strong className="text-slate-200">Kalalo</strong> offers <strong className="text-slate-200">Studio Grade Audio Enhancement</strong> using complex algorithms & AI. Audio Enhancement has been tested for multiple Scenarios including Harsh Traffic, white noise, crowds, hiss or any other form of Noise Pattern.
+                </p>
+
+                {/* Badge Pills from Screenshot 2 */}
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <span className="rounded-full bg-[#141822] border border-emerald-500/40 text-emerald-400 px-3.5 py-1.5 text-xs font-semibold">
+                    Works In Seconds
+                  </span>
+                  <span className="rounded-full bg-[#141822] border border-emerald-500/40 text-emerald-400 px-3.5 py-1.5 text-xs font-semibold">
+                    Realtime Playback
+                  </span>
+                  <span className="rounded-full bg-[#141822] border border-emerald-500/40 text-emerald-400 px-3.5 py-1.5 text-xs font-semibold">
+                    Studio Quality
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Column: Audio Switcher Video Card */}
+              <div className="md:col-span-6 flex justify-center">
+                <div className="w-full max-w-sm aspect-[4/5] rounded-2xl border border-white/10 bg-[#12151e] p-4 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#1e293b_0%,#090b0e_100%)] opacity-80" />
+                  
+                  {/* Raw Audio Switch Pill (from Screenshot 2) */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className="rounded-full bg-black/60 px-3 py-1 text-[11px] font-medium text-slate-300 border border-white/10">
+                      • {rawAudioToggle ? "Enhanced Studio Audio" : "Raw Audio"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRawAudioToggle(!rawAudioToggle)}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        rawAudioToggle ? "bg-emerald-500" : "bg-slate-700"
+                      }`}
+                    >
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                          rawAudioToggle ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
                     </button>
                   </div>
-                </div>
-                <p className="mt-3 text-[11px] text-slate-500 font-mono">Live ASS Subtitle Renderer Preview</p>
-              </div>
 
-              {/* Right Column: Segment Timeline & Preset Controls */}
-              <div className="md:col-span-7 flex flex-col justify-between space-y-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-semibold text-slate-200 flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-emerald-400" />
-                      AI Transcript Timestamps
-                    </span>
-                    <span className="text-[11px] font-mono text-emerald-400">Sync: Word-Level Accurate</span>
+                  {/* Center Speaker Graphic */}
+                  <div className="relative z-10 my-auto text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.3)] mb-3">
+                      {rawAudioToggle ? <Volume2 className="h-8 w-8" /> : <VolumeX className="h-8 w-8 text-slate-400" />}
+                    </div>
+                    <p className="text-xs font-bold text-white">
+                      {rawAudioToggle ? "Clean 16kHz Vocal Isolation Active" : "Original Noisy Video Track"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">Noise gate, frequency normalization & de-hissing</p>
                   </div>
 
-                  {/* Timed Segments */}
-                  <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
-                    {currentLangData.sample.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className={`flex items-center justify-between rounded-lg p-2 text-xs border transition-colors ${
-                          item.highlight
-                            ? "border-emerald-500/40 bg-emerald-950/30 text-emerald-200"
-                            : "border-slate-800/80 bg-slate-900/40 text-slate-300"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-slate-500">{item.start}</span>
-                          <span className={item.highlight ? "font-bold text-emerald-300" : ""}>{item.word}</span>
-                        </div>
-                        {item.highlight && (
-                          <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
-                            Key Word
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quick Action Buttons */}
-                <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400">Preset:</span>
-                    <span className="rounded bg-slate-800 px-2 py-0.5 text-[11px] font-medium text-slate-200">
-                      Pop Word Highlight
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/editor?sample=true"
-                      className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition-colors"
-                    >
-                      Open in Editor
-                    </Link>
+                  <div className="relative z-10 flex items-center justify-center border-t border-white/10 pt-2 text-[11px] text-slate-400 font-mono">
+                    High-Speech Fidelity Mono 64kbps
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION C: LANGUAGE SELECTION & CAPTION DEMONSTRATION */}
-      <section className="py-20 md:py-28 border-b border-slate-900 bg-[#07090C] relative">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-950/30 px-3 py-1 text-xs font-medium text-emerald-400 mb-4">
-              <Languages className="h-3.5 w-3.5" />
-              <span>Multi-Language Caption Engine</span>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Captions tuned for Indian & Global Creators
-            </h2>
-            <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed">
-              Kalalo accurately detects mixed Hinglish phrasing, preserves pure Devanagari script for Hindi, and delivers crisp English subtitle timing.
-            </p>
-          </div>
+      {/* SECTION: UNBEATABLE PRICING (Matches Kalakar Screenshot 3) */}
+      <section id="pricing" className="py-20 md:py-28 border-t border-white/5 relative">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 text-center">
+          
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+            Unbeatable Pricing <span className="text-emerald-400">Across Industry</span>
+          </h2>
 
-          {/* Language Switch Tabs */}
-          <div className="flex flex-wrap items-center justify-center gap-2 max-w-md mx-auto mb-10 p-1.5 rounded-xl bg-slate-900/80 border border-slate-800">
-            {demoLanguages.map((lang) => (
+          {/* Monthly / Yearly Toggle (from Screenshot 3) */}
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <div className="flex items-center rounded-full bg-[#12141c] p-1 border border-white/10">
               <button
-                key={lang.id}
                 type="button"
-                onClick={() => setSelectedLang(lang.id)}
-                className={`flex-1 min-w-[110px] rounded-lg py-2.5 px-3 text-xs font-semibold transition-all ${
-                  selectedLang === lang.id
-                    ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                onClick={() => setBillingCycle("monthly")}
+                className={`rounded-full px-5 py-1.5 text-xs font-bold transition-all ${
+                  billingCycle === "monthly"
+                    ? "bg-white text-slate-950 shadow-md"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
-                <div>{lang.label}</div>
-                <div className={`text-[10px] opacity-80 ${selectedLang === lang.id ? "text-slate-900 font-normal" : "text-slate-500"}`}>
-                  {lang.sublabel}
-                </div>
+                Monthly
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setBillingCycle("yearly")}
+                className={`rounded-full px-5 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  billingCycle === "yearly"
+                    ? "bg-white text-slate-950 shadow-md"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>Yearly</span>
+                <span className="rounded-full bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 text-[9px] font-extrabold">
+                  SAVE
+                </span>
+              </button>
+            </div>
+            <span className="text-[11px] text-emerald-400 font-semibold font-mono">
+              ⤷ 2 months free
+            </span>
           </div>
 
-          {/* Interactive Demo Card */}
-          <div className="max-w-3xl mx-auto rounded-2xl border border-slate-800 bg-[#101318] p-6 sm:p-8 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-                <span className="text-xs font-medium text-slate-300">
-                  Interactive Demonstration — {currentLangData.label}
-                </span>
+          {/* 4 Pricing Cards Grid (Exact structure from Screenshot 3) */}
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+            
+            {/* Card 1: Free */}
+            <div className="rounded-3xl border border-white/10 bg-[#0d0f14] p-6 flex flex-col justify-between hover:border-white/20 transition-all">
+              <div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-300 mb-4">
+                  <Flame className="h-5 w-5" />
+                </div>
+                <h3 className="text-base font-bold text-white">Free</h3>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-white">₹ 0</span>
+                  <span className="text-[11px] text-slate-400">+ GST</span>
+                </div>
+                <span className="text-[11px] text-slate-500">/ per month</span>
+
+                <Link
+                  href="/login"
+                  className="mt-5 w-full block text-center rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold py-2.5 text-xs transition-colors"
+                >
+                  Get Started
+                </Link>
+
+                <div className="mt-6 pt-5 border-t border-white/5 space-y-3 text-xs text-slate-300">
+                  <p className="font-bold text-white text-[11px] uppercase tracking-wider">Key Features</p>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>All Languages</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>5 Minutes Free Testing (Full Templates)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>5 GB Cloud Storage</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Max Video Length 2 min</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>3 Audio Enhancement Credits</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>&quot;No Watermark&quot; Free Render</span>
+                  </div>
+                </div>
               </div>
-              <span className="text-[11px] font-mono text-slate-500">Sample transcript preview</span>
             </div>
 
-            {/* Caption Display Box */}
-            <div className="rounded-xl border border-slate-800 bg-[#090B0E] p-6 sm:p-10 text-center mb-6 relative overflow-hidden">
-              <div className="text-xs uppercase tracking-wider text-slate-500 font-mono mb-3">Live Stylized Caption</div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-                {currentLangData.sample.map((wordObj, i) => (
-                  <span
-                    key={i}
-                    className={`inline-block mx-1 transition-all duration-200 ${
-                      wordObj.highlight
-                        ? "text-yellow-400 scale-105 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]"
-                        : "text-slate-200"
-                    }`}
-                  >
-                    {wordObj.word}
-                  </span>
-                ))}
+            {/* Card 2: Editor Plan */}
+            <div className="rounded-3xl border border-white/10 bg-[#0d0f14] p-6 flex flex-col justify-between hover:border-white/20 transition-all">
+              <div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-300 mb-4">
+                  <Sliders className="h-5 w-5" />
+                </div>
+                <h3 className="text-base font-bold text-white">Editor Plan</h3>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-white">₹ 670</span>
+                  <span className="text-[11px] text-slate-400">+ GST</span>
+                </div>
+                <span className="text-[11px] text-slate-500">/ per month</span>
+
+                <Link
+                  href="/login"
+                  className="mt-5 w-full block text-center rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold py-2.5 text-xs transition-colors"
+                >
+                  Get Started
+                </Link>
+
+                <div className="mt-6 pt-5 border-t border-white/5 space-y-3 text-xs text-slate-300">
+                  <p className="font-bold text-white text-[11px] uppercase tracking-wider">Everything In Free, plus</p>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>2 Hours of Transcription</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>20 GB Cloud Storage</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Max Video Length 2 min</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>50 Videos Audio Enhancement</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Custom Font Upload</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>1080p / 30 FPS render</span>
+                  </div>
+                </div>
               </div>
-              <p className="mt-4 text-xs text-slate-500">
-                Word-level timestamps allow dynamic highlighting, color animation, and easy text edits.
-              </p>
             </div>
 
-            {/* Features check list */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-400">
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Zero audio hallucination</span>
+            {/* Card 3: Creator Plan (Most Popular with Green Border) */}
+            <div className="rounded-3xl border-2 border-emerald-500 bg-[#0e1219] p-6 flex flex-col justify-between shadow-[0_0_40px_rgba(16,185,129,0.2)] relative">
+              <div className="absolute -top-3.5 right-6 rounded-full bg-emerald-500 text-slate-950 font-black px-3 py-0.5 text-[10px] tracking-wider uppercase">
+                Most Popular
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Devanagari Unicode support</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Exportable to SRT & VTT</span>
+              <div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 mb-4">
+                  <Rocket className="h-5 w-5" />
+                </div>
+                <h3 className="text-base font-bold text-white">Creator Plan</h3>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-white">₹ 950</span>
+                  <span className="text-[11px] text-slate-400">+ GST</span>
+                </div>
+                <span className="text-[11px] text-slate-500">/ per month</span>
+
+                <Link
+                  href="/login"
+                  className="mt-5 w-full block text-center rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-2.5 text-xs transition-colors shadow-lg shadow-emerald-500/30"
+                >
+                  Get Started
+                </Link>
+
+                <div className="mt-6 pt-5 border-t border-white/5 space-y-3 text-xs text-slate-300">
+                  <p className="font-bold text-emerald-400 text-[11px] uppercase tracking-wider">Everything in Editor, plus</p>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>5 Hours of Transcription</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>60 GB Cloud Storage</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Max Video Length 5 min</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Unlimited Audio Enhancement</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>4K / 60 FPS render</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Subtitles (.srt / .vtt)</span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Card 4: Studio Plan */}
+            <div className="rounded-3xl border border-white/10 bg-[#0d0f14] p-6 flex flex-col justify-between hover:border-white/20 transition-all">
+              <div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-300 mb-4">
+                  <Crown className="h-5 w-5" />
+                </div>
+                <h3 className="text-base font-bold text-white">Studio Plan</h3>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-white">₹ 2400</span>
+                  <span className="text-[11px] text-slate-400">+ GST</span>
+                </div>
+                <span className="text-[11px] text-slate-500">/ per month</span>
+
+                <Link
+                  href="/login"
+                  className="mt-5 w-full block text-center rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold py-2.5 text-xs transition-colors"
+                >
+                  Get Started
+                </Link>
+
+                <div className="mt-6 pt-5 border-t border-white/5 space-y-3 text-xs text-slate-300">
+                  <p className="font-bold text-white text-[11px] uppercase tracking-wider">Everything in Creator, plus</p>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>12 Hours of Transcription</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>150 GB Cloud Storage</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Max Video Length 30 min</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Alpha Channel Render</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Transcript Export (.docx / .txt)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Add Unlimited Team Members</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* SECTION D: CAPTION STYLES & PRESETS GALLERY */}
-      <section id="presets" className="py-20 md:py-28 border-b border-slate-900 relative">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-950/30 px-3 py-1 text-xs font-medium text-emerald-400 mb-4">
-              <Palette className="h-3.5 w-3.5" />
-              <span>28 Production Presets</span>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Creator Presets Built for Every Aesthetic
-            </h2>
-            <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed">
-              Every preset is mathematically calibrated with exact font metrics, shadow offsets, and ASS subtitle directives so your burned captions look pixel-perfect.
-            </p>
-          </div>
+      {/* SECTION: LOVED BY CREATORS ACROSS SOCIAL FEEDS (Matches Kalakar Screenshot 4) */}
+      <section className="py-20 md:py-28 border-t border-white/5 relative">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 text-center">
+          
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+            Loved by Creators Across <span className="text-emerald-400">South Asia</span>
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {presets.map((preset) => (
-              <div
-                key={preset.id}
-                className="group flex flex-col justify-between rounded-2xl border border-slate-800 bg-[#101318] p-6 hover:border-emerald-500/40 hover:bg-[#13171e] transition-all duration-200"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="rounded-md bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-300">
-                      {preset.category}
-                    </span>
-                    <span className="text-[10px] font-mono text-emerald-400">{preset.colorBadge}</span>
-                  </div>
+          <div className="mt-14 grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+            
+            {/* Left Column: 9:16 Video Card 1 */}
+            <div className="md:col-span-4 rounded-3xl border border-white/10 bg-[#0d0f14] p-4 flex flex-col justify-between relative overflow-hidden min-h-[460px] text-left">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black opacity-90" />
+              
+              <div className="relative z-10 flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                <span>9:16 SHORTS</span>
+                <span className="text-emerald-400 font-bold">1080 x 1920</span>
+              </div>
 
-                  <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
-                    {preset.name}
-                  </h3>
-
-                  {/* Visual Style Preview Card */}
-                  <div className="my-4 h-24 rounded-xl border border-slate-800 bg-[#090B0E] p-3 flex items-center justify-center text-center overflow-hidden">
-                    <p className={preset.previewStyle}>{preset.previewText}</p>
-                  </div>
-
-                  <p className="text-xs text-slate-400 leading-relaxed">{preset.description}</p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-500 font-mono">{preset.font}</span>
-                  <Link
-                    href={`/editor?preset=${preset.id}&sample=true`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
-                  >
-                    <span>Use Preset</span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
+              {/* Bold Captions Overlay */}
+              <div className="relative z-10 my-auto text-center px-3">
+                <div className="inline-block p-2 rounded bg-black/70 backdrop-blur border border-black/40">
+                  <p className="text-lg font-black uppercase text-emerald-400 tracking-tight leading-tight drop-shadow-[0_4px_12px_rgba(16,185,129,0.5)]">
+                    SO I&apos;VE BEEN<br />EDITING VIDEOS
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
 
-          <div className="mt-10 text-center">
+              {/* Creator Tag & Play Button */}
+              <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-xs text-white">
+                    B
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white leading-none">Bhuwan</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">• India</p>
+                  </div>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Play className="h-4 w-4 fill-current ml-0.5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Center Column: 3 Stacked Dark Quote Cards (from Screenshot 4) */}
+            <div className="md:col-span-4 flex flex-col justify-between gap-4 text-left">
+              
+              {/* Quote 1: Aarav */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d0f14] p-5">
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  &ldquo;I&apos;ve been using Kalalo recently &amp; it&apos;s honestly super helpful. It supports multiple languages, generating Hindi captions used to be a real struggle, but with Kalalo the process is super smooth.&rdquo;
+                </p>
+                <div className="mt-3 flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-full bg-emerald-900/60 border border-emerald-500/30 flex items-center justify-center text-[11px] font-bold text-emerald-300">
+                    A
+                  </div>
+                  <span className="text-xs font-bold text-white">Aarav</span>
+                </div>
+              </div>
+
+              {/* Quote 2: Zaryab Khan */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d0f14] p-5">
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  &ldquo;If you&apos;re an editor or creator, this software is your only solution. It&apos;s got all the trendy captioning styles available like beast style, Iman Gadzhi, Devin Jatho, Alex hormozi etc just one click away.&rdquo;
+                </p>
+                <div className="mt-3 flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-full bg-teal-900/60 border border-teal-500/30 flex items-center justify-center text-[11px] font-bold text-teal-300">
+                    Z
+                  </div>
+                  <span className="text-xs font-bold text-white">Zaryab Khan</span>
+                </div>
+              </div>
+
+              {/* Quote 3: Ahsan Imran */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d0f14] p-5">
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  &ldquo;Kalalo as a captioning software is one of the best out there. Its premade templates are really helpful &amp; loading times are really quick. Overall as an editor it makes the captioning much more easier.&rdquo;
+                </p>
+                <div className="mt-3 flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-full bg-purple-900/60 border border-purple-500/30 flex items-center justify-center text-[11px] font-bold text-purple-300">
+                    A
+                  </div>
+                  <span className="text-xs font-bold text-white">Ahsan Imran</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column: 9:16 Video Card 2 */}
+            <div className="md:col-span-4 rounded-3xl border border-white/10 bg-[#0d0f14] p-4 flex flex-col justify-between relative overflow-hidden min-h-[460px] text-left">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-black opacity-90" />
+              
+              <div className="relative z-10 flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                <span>CINEMA SUBTITLE</span>
+                <span className="text-emerald-400 font-bold">1080 x 1920</span>
+              </div>
+
+              {/* Minimal Cinema Subtitle */}
+              <div className="relative z-10 my-auto text-center px-4">
+                <div className="inline-block p-2 rounded bg-black/60 backdrop-blur">
+                  <p className="text-xs font-medium text-slate-100 tracking-wider">
+                    BECAUSE I ENJOY THIS<br />AND SINCE DAY ONE
+                  </p>
+                </div>
+              </div>
+
+              {/* Creator Tag & Play Button */}
+              <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-xs text-white">
+                    I
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white leading-none">Irfan Junejo</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">• Pakistan</p>
+                  </div>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Play className="h-4 w-4 fill-current ml-0.5" />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION: EXPORT IN SRT OR ALPHA CHANNEL (Matches Kalakar Screenshot 5) */}
+      <section className="py-20 md:py-28 border-t border-white/5 relative">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
+          
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+            Export in <span className="text-emerald-400">SRT or Alpha Channel</span>
+          </h2>
+
+          <p className="mt-4 text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            For all the Pro-Editors, <strong className="text-slate-200">cross NLE support available</strong> to bring captions back locally in your own software of choice, both as Alpha channel or as an SRT File
+          </p>
+
+          <div className="mt-6">
             <Link
-              href="/presets"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-emerald-300 transition-colors"
+              href="/editor"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black px-6 py-2.5 text-xs shadow-[0_0_25px_rgba(52,211,153,0.35)] transition-all hover:scale-105"
             >
-              <span>Explore all 28 Typography Presets in Library</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <span>Join now</span>
+              <ArrowUpRight className="h-3.5 w-3.5 stroke-[3]" />
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* SECTION E: PRODUCT WORKFLOW */}
-      <section className="py-20 md:py-28 border-b border-slate-900 bg-[#07090C] relative">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-950/30 px-3 py-1 text-xs font-medium text-emerald-400 mb-4">
-              <Layers className="h-3.5 w-3.5" />
-              <span>Authentic 4-Step Pipeline</span>
+          {/* Software Bridge Diagram (from Screenshot 5) */}
+          <div className="mt-14 max-w-3xl mx-auto rounded-3xl border border-white/10 bg-[#0d0f14] p-8 sm:p-12 shadow-2xl relative">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+              
+              {/* Left Box: Premiere, FCP, Resolve */}
+              <div className="rounded-2xl border border-white/10 bg-[#12151e] p-5 flex items-center gap-3">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-white">
+                  <span className="px-2 py-1 rounded bg-[#00005b] text-purple-300 font-mono text-[11px] border border-purple-500/30">Pr</span>
+                  <span className="px-2 py-1 rounded bg-[#333] text-cyan-300 font-mono text-[11px] border border-cyan-500/30">FCP</span>
+                  <span className="px-2 py-1 rounded bg-[#4a154b] text-pink-300 font-mono text-[11px] border border-pink-500/30">Resolve</span>
+                </div>
+                <span className="text-slate-500 text-xs">:</span>
+                <span className="text-emerald-400 font-mono text-xs">Video</span>
+              </div>
+
+              {/* Center Connection: Kalalo Pill */}
+              <div className="flex items-center gap-2">
+                <div className="h-px w-8 bg-emerald-500/60 hidden sm:block" />
+                <div className="rounded-full bg-emerald-500/20 border border-emerald-500/50 px-4 py-1.5 text-xs font-black text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                  Kalalo
+                </div>
+                <div className="h-px w-8 bg-emerald-500/60 hidden sm:block" />
+              </div>
+
+              {/* Right Box: Output Subtitles & Burn-In */}
+              <div className="rounded-2xl border border-white/10 bg-[#12151e] p-5 flex items-center gap-3">
+                <div className="flex items-center gap-2 font-mono text-xs text-slate-300">
+                  <span className="rounded bg-emerald-950/80 border border-emerald-800/40 px-2 py-1 text-emerald-300 font-bold">
+                    .SRT / .VTT
+                  </span>
+                  <span className="rounded bg-slate-800 px-2 py-1 text-slate-300 font-bold">
+                    1080p MP4
+                  </span>
+                </div>
+              </div>
+
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              From Raw Media to Export in Minutes
-            </h2>
-            <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed">
-              No complicated timelines or clunky software. Complete your entire caption workflow in four seamless steps.
+
+            <p className="mt-8 text-[11px] text-slate-500 font-mono">
+              Export video from software ➔ Auto-generate captions with Gemini ➔ Re-import subtitle tracks without quality loss
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Step 1 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono font-bold text-sm mb-4">
-                01
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">Upload Video</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Upload your MP4, MOV, WebM, or audio file directly. Media is stored securely with your user account in Supabase.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono font-bold text-sm mb-4">
-                02
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">AI Transcription</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Google Gemini analyzes the audio track with Hinglish/Hindi dialect awareness and generates exact word timestamps.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono font-bold text-sm mb-4">
-                03
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">Edit & Style</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Fine-tune spellings, shift timings, select from 28 visual presets, and adjust font sizes with real-time video preview.
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono font-bold text-sm mb-4">
-                04
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">Export or Burn-In</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Download clean SRT or VTT subtitle tracks instantly, or render a burned-in video in 1080p using high-speed FFmpeg.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* SECTION F: FEATURE CARDS */}
-      <section id="features" className="py-20 md:py-28 border-b border-slate-900 relative">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-950/30 px-3 py-1 text-xs font-medium text-emerald-400 mb-4">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Full-Stack Capabilities</span>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Engineered for Modern Content Creation
-            </h2>
-            <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed">
-              Every capability is genuinely implemented and backed by real AI models, processing engines, and persistent cloud storage.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Feature 1 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 hover:border-slate-700 transition-colors">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">AI-Assisted Transcription</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Powered by Google Gemini 2.5 models. Real speech analysis that accurately distinguishes conversational Hinglish and technical vocabulary.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 hover:border-slate-700 transition-colors">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
-                <Sliders className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">Interactive Caption Studio</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Edit text, split or merge segments, nudge timestamps in milliseconds, and immediately see rendered results on the video player.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 hover:border-slate-700 transition-colors">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
-                <Palette className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">28 Typography Presets</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                From Cinema subtitles to Devanagari Gold and Pop Highlights. Fully customizable font sizes, colors, and positioning presets.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 hover:border-slate-700 transition-colors">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
-                <Download className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">SRT, VTT & ASS Subtitle Export</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Standard subtitle export ready for YouTube, Premiere Pro, Final Cut Pro, and DaVinci Resolve. Full Unicode compliance.
-              </p>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 hover:border-slate-700 transition-colors">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
-                <Video className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">High-Def FFmpeg Video Burn-In</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Renders styled captions directly into the video stream in 1080p or 720p with crisp anti-aliased font rendering and fast audio encoding.
-              </p>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 hover:border-slate-700 transition-colors">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">Supabase Cloud Persistence</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                PostgreSQL database with Row-Level Security, Supabase Auth, and Storage. Your projects and captions stay protected and synced.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION G: CREATOR SHOWCASE / MULTI-FORMAT */}
-      <section className="py-20 md:py-28 border-b border-slate-900 bg-[#07090C] relative">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Optimized for Every Platform & Aspect Ratio
-            </h2>
-            <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed">
-              Whether you create Reels, YouTube tutorials, or LinkedIn clips, Kalalo adapts to your canvas.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 text-center">
-              <div className="mx-auto w-24 h-36 rounded-lg border-2 border-emerald-500/40 bg-slate-900 flex items-center justify-center text-xs font-mono text-emerald-300 mb-4">
-                9:16
-              </div>
-              <h3 className="text-base font-bold text-white">Shorts & Reels</h3>
-              <p className="mt-1 text-xs text-slate-400">Vertical format with safe margin padding for UI overlays</p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 text-center">
-              <div className="mx-auto w-36 h-20 rounded-lg border-2 border-emerald-500/40 bg-slate-900 flex items-center justify-center text-xs font-mono text-emerald-300 mb-4">
-                16:9
-              </div>
-              <h3 className="text-base font-bold text-white">YouTube & Landscape</h3>
-              <p className="mt-1 text-xs text-slate-400">Horizontal standard cinema and educational tutorial layout</p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-[#101318] p-6 text-center">
-              <div className="mx-auto w-24 h-24 rounded-lg border-2 border-emerald-500/40 bg-slate-900 flex items-center justify-center text-xs font-mono text-emerald-300 mb-4">
-                1:1
-              </div>
-              <h3 className="text-base font-bold text-white">Square Social Feed</h3>
-              <p className="mt-1 text-xs text-slate-400">Square dimension ideal for LinkedIn, Instagram feed, and Twitter</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION H & I: HONEST EARLY ACCESS / STATUS */}
-      <section className="py-20 md:py-28 border-b border-slate-900 relative">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-b from-[#101720] to-[#0c0f14] p-8 sm:p-14 shadow-2xl relative overflow-hidden">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3.5 py-1.5 text-xs font-medium text-emerald-300 mb-6">
-              <Flame className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Public Beta & Creator Access</span>
-            </div>
-
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Honest Software Built for Creators
-            </h2>
-
-            <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
-              We do not fabricate fake reviews or claim millions of users. Kalalo is an active, open-source-aligned startup product built for creators who want clean, accurate subtitles without exorbitant recurring fees.
-            </p>
-
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-xl mx-auto">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                <div className="text-emerald-400 font-bold text-base">Open Beta</div>
-                <div className="text-[11px] text-slate-400 mt-1">Full access to Gemini AI transcription & presets</div>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                <div className="text-emerald-400 font-bold text-base">Self-Hostable</div>
-                <div className="text-[11px] text-slate-400 mt-1">Deploy on Vercel with your own Supabase project</div>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                <div className="text-emerald-400 font-bold text-base">Active Feedback</div>
-                <div className="text-[11px] text-slate-400 mt-1">Direct development driven by creator requests</div>
-              </div>
-            </div>
-
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link
-                href="/editor"
-                className="flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
-              >
-                <span>Launch Caption Studio</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a
-                href="https://github.com/karanxrathod/kalalo-ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-6 py-3 text-sm font-medium text-slate-200 hover:text-white transition-colors"
-              >
-                <Code2 className="h-4 w-4 text-emerald-400" />
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION J: FINAL CTA & PROFESSIONAL FOOTER */}
-      <footer className="bg-[#050608] border-t border-slate-900 text-slate-400 text-xs">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14">
+      {/* FINAL CALL TO ACTION & FOOTER */}
+      <footer className="bg-[#050608] border-t border-white/5 text-slate-400 text-xs">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            
             {/* Brand Column */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 p-0.5">
-                  <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-[#090B0E]">
-                    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 p-0.5">
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-[#07080A]">
+                    <Sparkles className="h-4 w-4 text-emerald-400" />
                   </div>
                 </div>
-                <span className="text-base font-bold text-white tracking-tight">Kalalo</span>
+                <span className="text-base font-black text-white tracking-tight">Kalalo</span>
               </div>
               <p className="text-slate-500 leading-relaxed text-[11px]">
-                AI-assisted video captioning studio & MCP server. High-accuracy subtitles for Hinglish, Hindi, and English.
+                Captioning software engineered for desi creators. Multi-language speech recognition, viral social presets, and FFmpeg video burn-in.
               </p>
             </div>
 
-            {/* Product Column */}
+            {/* Product Links */}
             <div>
-              <h4 className="font-semibold text-slate-200 mb-3 text-xs uppercase tracking-wider">Product</h4>
+              <h4 className="font-bold text-white mb-3 text-xs uppercase tracking-wider">Product</h4>
               <ul className="space-y-2">
                 <li>
                   <Link href="/editor" className="hover:text-emerald-400 transition-colors">
@@ -764,7 +892,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link href="/dashboard" className="hover:text-emerald-400 transition-colors">
-                    User Dashboard
+                    Creator Dashboard
                   </Link>
                 </li>
                 <li>
@@ -775,9 +903,9 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            {/* Resources Column */}
+            {/* Resources Links */}
             <div>
-              <h4 className="font-semibold text-slate-200 mb-3 text-xs uppercase tracking-wider">Resources</h4>
+              <h4 className="font-bold text-white mb-3 text-xs uppercase tracking-wider">Resources</h4>
               <ul className="space-y-2">
                 <li>
                   <a
@@ -792,20 +920,20 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link href="/login" className="hover:text-emerald-400 transition-colors">
-                    Creator Sign In
+                    Sign In / Register
                   </Link>
                 </li>
                 <li>
-                  <a href="#features" className="hover:text-emerald-400 transition-colors">
-                    Features Overview
+                  <a href="#pricing" className="hover:text-emerald-400 transition-colors">
+                    Pricing Plans
                   </a>
                 </li>
               </ul>
             </div>
 
-            {/* Legal Column */}
+            {/* Legal Links */}
             <div>
-              <h4 className="font-semibold text-slate-200 mb-3 text-xs uppercase tracking-wider">Legal & Privacy</h4>
+              <h4 className="font-bold text-white mb-3 text-xs uppercase tracking-wider">Legal &amp; Privacy</h4>
               <ul className="space-y-2">
                 <li>
                   <Link href="/privacy" className="hover:text-emerald-400 transition-colors">
@@ -818,16 +946,17 @@ export default function LandingPage() {
                   </Link>
                 </li>
                 <li className="text-slate-600 text-[10px] pt-1">
-                  Protected under PostgreSQL Row-Level Security
+                  PostgreSQL Row-Level Security Enforced
                 </li>
               </ul>
             </div>
+
           </div>
 
-          <div className="border-t border-slate-900 pt-8 flex flex-col sm:flex-row items-center justify-between text-slate-500 text-[11px] gap-4">
+          <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between text-slate-500 text-[11px] gap-4">
             <p>© {new Date().getFullYear()} Kalalo. All rights reserved.</p>
-            <p className="flex items-center gap-1.5">
-              <span>Engineered with Gemini & Next.js</span>
+            <p className="flex items-center gap-1.5 text-slate-400">
+              <span>Made with Google Gemini &amp; Next.js</span>
             </p>
           </div>
         </div>

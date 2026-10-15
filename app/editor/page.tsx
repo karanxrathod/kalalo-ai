@@ -213,6 +213,60 @@ function EditorContent() {
   } | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
 
+  // Cloud Project Save state
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  const handleSaveProject = async () => {
+    setIsSaving(true);
+    setSaveStatus("saving");
+    try {
+      if (projectId) {
+        const res = await fetch(`/api/projects/${projectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            segments,
+            presetId: selectedPresetId,
+            customPreset: currentStyle,
+            aspectRatio,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to save project");
+      } else {
+        const res = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: fileName.replace(/\.[^/.]+$/, "") || "Untitled Project",
+            fileName,
+            filePath: mediaPath,
+            streamUrl,
+            durationSeconds: duration,
+            aspectRatio,
+            presetId: selectedPresetId,
+            customPreset: currentStyle,
+            segments,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to create project");
+        const data = await res.json();
+        if (data.project?.id) {
+          setProjectId(data.project.id);
+          window.history.replaceState(null, "", `?projectId=${data.project.id}`);
+        }
+      }
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    } catch (err) {
+      console.error("Save failed:", err);
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 4000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // History Helper to record state transitions
   const commitSegmentsChange = useCallback((newSegments: CaptionSegment[] | ((prev: CaptionSegment[]) => CaptionSegment[])) => {
     setSegments((prev) => {
@@ -324,6 +378,17 @@ function EditorContent() {
             setTrimEnd(p.durationSeconds);
             setStreamUrl(p.streamUrl || `/api/media/stream?path=${encodeURIComponent(p.filePath)}`);
             if (p.aspectRatio) setAspectRatio(p.aspectRatio);
+            if (p.presetId) {
+              setSelectedPresetId(p.presetId);
+              try {
+                const base = PresetsService.getPreset(p.presetId);
+                if (p.customPreset) {
+                  setCurrentStyle({ ...base, ...p.customPreset });
+                } else {
+                  setCurrentStyle(base);
+                }
+              } catch {}
+            }
 
             if (Array.isArray(p.segments) && p.segments.length > 0) {
               const normalized = CaptionsService.normalizeSegments(p.segments, p.durationSeconds);
@@ -854,6 +919,42 @@ function EditorContent() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Save Project to Cloud Database Button */}
+          <button
+            onClick={handleSaveProject}
+            disabled={isSaving}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+              saveStatus === "saved"
+                ? "border-emerald-500/50 bg-emerald-950/40 text-emerald-300"
+                : saveStatus === "error"
+                ? "border-red-500/50 bg-red-950/40 text-red-300"
+                : "border-[#262A38] bg-[#12141C] hover:bg-[#181B26] text-slate-200"
+            }`}
+            title="Save caption edits and styling to cloud database"
+          >
+            {saveStatus === "saving" ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                <span>Saving...</span>
+              </>
+            ) : saveStatus === "saved" ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Saved to Cloud</span>
+              </>
+            ) : saveStatus === "error" ? (
+              <>
+                <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                <span>Save Failed</span>
+              </>
+            ) : (
+              <>
+                <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                <span>Save Project</span>
+              </>
+            )}
+          </button>
+
           {/* Subtitles Export (SRT / VTT) */}
           <button
             onClick={handleOpenExportSubtitles}
