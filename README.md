@@ -177,47 +177,51 @@ Add the server to your `claude_desktop_config.json`:
    - **Build Command:** `npm run build`
    - **Install Command:** `npm install`
 5. Configure Environment Variables in Vercel Project Settings:
-   - `JWT_SECRET`: Random 32+ character string for secure session signing.
-   - `GEMINI_API_KEY`: Default Google Gemini API key (fallback if users haven't configured their own).
-   - `KALALO_STT_PROVIDER`: Set to `gemini`.
-   - `KALALO_GEMINI_MODEL`: Set to `gemini-3.5-flash-lite`.
+   - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL (`https://xyz.supabase.co`)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anon public key
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role secret (Server-side only)
+   - `GEMINI_API_KEY`: Your Google Gemini API key
+   - `JWT_SECRET`: Random 64-character secret for sessions
+   - `KALALO_STT_PROVIDER`: `gemini`
+   - `KALALO_GEMINI_MODEL`: `gemini-2.5-flash` (or `gemini-2.5-flash-lite`)
 6. Click **Deploy**.
 
 ---
 
-## Architecture & Differences: Vercel vs. Dedicated Worker
+## Supabase Database Setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Go to the **SQL Editor** in your Supabase dashboard.
+3. Open and run the migration script: [`supabase/migrations/20261016_kalalo_schema.sql`](supabase/migrations/20261016_kalalo_schema.sql).
+4. Verify that the `kalalo-media` storage bucket was created in **Storage**.
+5. Copy your Project URL, Publishable/Anon Key, and Service Role Key from **Project Settings -> API**.
+
+---
+
+## Architecture: Vercel vs. Dedicated Background Worker
 
 When deployed on Vercel Serverless:
 1. **Frontend, Editor, Authentication & Presets:** Work 100% identically to local. Users can sign up, log in, preview sample projects, customize typography, drag captions, export SRT/VTT, and manage settings.
 2. **AI Speech Transcription:** Works directly on Vercel because it communicates over HTTPS with the Google Gemini API.
-3. **Serverless Limitations to Note:**
-   - **Serverless Execution Timeouts:** Vercel Hobby accounts enforce a 10-second limit; Vercel Pro allows up to 60–300 seconds. Longer videos (e.g. >60s) undergoing video encoding may exceed serverless execution limits.
-   - **Payload Limits:** Vercel limits incoming request bodies to 4.5MB. Direct upload of large video files (>4.5MB) through the serverless `/api/upload` endpoint will fail on Vercel without direct-to-cloud S3/R2 presigned upload URLs.
-   - **Ephemeral Storage (`/tmp`):** In serverless execution, only `/tmp` is writable. Rendered videos and local JSON databases are ephemeral and do not persist across multiple cold starts.
-   - **Person Cutout on Vercel:** MediaPipe and OpenCV require a Python runtime. Vercel Node.js serverless functions do not provide Python with native C-extensions.
-4. **Recommended Production Architecture for Video Rendering:**
-   - Deploy the web UI on Vercel.
-   - For high-volume or long-duration video rendering and Python person cutout, run a background worker on Docker, Railway, Render, Fly.io, or an AWS EC2 / DigitalOcean droplet, or connect to an S3/Cloudflare R2 bucket for persistent storage.
+3. **Database & Storage Persistence:** Supported via Supabase PostgreSQL tables and Supabase Storage bucket (`kalalo-media`).
+4. **Serverless Limitations to Note:**
+   - **Serverless Execution Timeouts:** Vercel Hobby accounts enforce a 10-second limit; Vercel Pro allows up to 60–300 seconds. Longer videos undergoing video encoding may exceed serverless execution limits.
+   - **Large Uploads:** Files uploaded through Supabase Storage bypass Vercel payload limits.
+   - **Person Cutout:** Requires Python with MediaPipe; run on dedicated worker or local environment.
 
 ---
 
 ## Environment Variables Reference
 
-| Variable | Description | Default | Required for Vercel |
+| Variable | Description | Where to Set | Required |
 |---|---|---|---|
-| `GEMINI_API_KEY` | Google Gemini API key for speech-to-text | None | Recommended |
-| `JWT_SECRET` | Secret key for signing user session tokens | Auto-generated in dev | **Required in Prod** |
-| `KALALO_SECRET_KEY` | Master key for encrypting user credentials at rest | Auto-generated in dev | Recommended |
-| `KALALO_STT_PROVIDER` | STT engine (`gemini`, `openai`, `mock`) | `gemini` | Optional |
-| `KALALO_GEMINI_MODEL` | Gemini model identifier | `gemini-3.5-flash-lite` | Optional |
-| `KALALO_OUTPUT_DIR` | Output directory for renders and subtitles | `./output` | Optional |
-| `KALALO_TEMP_DIR` | Temporary processing directory | `./tmp` | Optional |
-| `KALALO_PYTHON_PATH` | Path to Python 3.11 executable for MediaPipe | Auto-detected | Local / Worker only |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL | Vercel & Client | **Yes** |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon publishable key | Vercel & Client | **Yes** |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase administrative secret key | Vercel (Server) & Worker | **Yes** |
+| `GEMINI_API_KEY` | Google Gemini API key for speech recognition | Vercel (Server) & Worker | **Yes** |
+| `JWT_SECRET` | Secret key for signing sessions | Vercel (Server) | **Yes** |
+| `KALALO_SECRET_KEY` | Encryption key for user credentials | Vercel (Server) | Optional |
+| `KALALO_STT_PROVIDER` | STT engine (`gemini`, `openai`, `mock`) | Vercel & Worker | Optional (`gemini`) |
+| `KALALO_GEMINI_MODEL` | Gemini model name | Vercel & Worker | Optional (`gemini-2.5-flash`) |
+| `KALALO_TEMP_DIR` | Temporary processing path | Vercel (`/tmp`) | Optional |
 
----
-
-## Known Limitations
-
-1. **Vercel Request Body Limit (4.5MB):** Large video uploads require direct S3/R2 presigned upload architecture in high-scale cloud production.
-2. **Serverless Ephemeral Storage:** The atomic JSON database resets across cold starts on serverless hosts without a persistent database like PostgreSQL/Supabase.
-3. **Person Cutout Runtime:** Requires Python with MediaPipe; operates on local machines and dedicated Docker/VM hosts.

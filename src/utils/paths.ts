@@ -38,7 +38,17 @@ const ALLOWED_MEDIA_EXTENSIONS = new Set([
 ]);
 
 /**
- * Validates and resolves an input file path. Ensures it exists, is a file, and does not perform illicit traversal.
+ * Checks whether a path string is an HTTP or HTTPS remote URL.
+ */
+export function isHttpUrl(filePath: string): boolean {
+  if (!filePath || typeof filePath !== "string") return false;
+  const trimmed = filePath.trim().toLowerCase();
+  return trimmed.startsWith("http://") || trimmed.startsWith("https://");
+}
+
+/**
+ * Validates and resolves an input file path or remote media URL.
+ * Ensures local files exist and are not sensitive system files.
  */
 export function validateInputPath(filePath: string): string {
   if (!filePath || typeof filePath !== "string" || filePath.trim().length === 0) {
@@ -56,6 +66,23 @@ export function validateInputPath(filePath: string): string {
       message: "Path traversal or null-byte detected in path",
       retryable: false,
     });
+  }
+
+  // Handle remote HTTP / HTTPS URLs (e.g. Supabase Storage URLs)
+  if (isHttpUrl(filePath)) {
+    try {
+      const url = new URL(filePath.trim());
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw new Error("Invalid protocol");
+      }
+      return url.toString();
+    } catch {
+      throw new KalaloError({
+        code: "INVALID_INPUT",
+        message: `Invalid remote media URL: ${filePath}`,
+        retryable: false,
+      });
+    }
   }
 
   const resolved = path.resolve(filePath.trim());
@@ -187,4 +214,54 @@ export function ensureDir(dirPath: string): string {
   }
   return resolved;
 }
+
+/**
+ * Ensures an input path (local file or remote HTTP URL) is available as a local file for FFmpeg / FFprobe.
+ * Downloads remote media files to a temporary location if needed and provides a cleanup callback.
+ */
+export async function ensureLocalMediaFile(inputPath: string): Promise<{
+  localPath: string;
+  isTemporary: boolean;
+  cleanup: () => Promise<void>;
+}> {
+  if (isHttpUrl(inputPath)) {
+    const baseDir = process.env.VERCEL ? "/tmp" : process.cwd();
+    const tempDir = ensureDir(path.resolve(baseDir, "tmp", "downloads"));
+    const urlObj = new URL(inputPath);
+    const ext = path.extname(urlObj.pathname) || ".mp4";
+    const tempFile = path.join(tempDir, `remote-${Date.now()}-${Math.random().toString(36).substring(2, 7)}${ext}`);
+
+    const res = await fetch(inputPath);
+    if (!res.ok) {
+      throw new KalaloError({
+        code: "MEDIA_NOT_FOUND",
+        message: `Failed to download remote media from URL (HTTP ${res.status}): ${inputPath}`,
+        retryable: false,
+      });
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    await fs.promises.writeFile(tempFile, Buffer.from(arrayBuffer));
+
+    return {
+      localPath: tempFile,
+      isTemporary: true,
+      cleanup: async () => {
+        try {
+          if (fs.existsSync(tempFile)) {
+            await fs.promises.unlink(tempFile);
+          }
+        } catch {}
+      },
+    };
+  }
+
+  const resolved = validateInputPath(inputPath);
+  return {
+    localPath: resolved,
+    isTemporary: false,
+    cleanup: async () => {},
+  };
+}
+
 

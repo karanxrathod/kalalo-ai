@@ -1,6 +1,6 @@
 import { MediaMetadata, VideoStreamInfo, AudioStreamInfo } from "../types/index.js";
 import { KalaloError } from "../utils/errors.js";
-import { validateInputPath } from "../utils/paths.js";
+import { ensureLocalMediaFile } from "../utils/paths.js";
 import { spawnSafe, resolveFfprobePath } from "../utils/process.js";
 
 export class MediaService {
@@ -8,7 +8,7 @@ export class MediaService {
    * Inspects a video or audio file using FFprobe and extracts real metadata.
    */
   public static async inspectMedia(inputPath: string): Promise<MediaMetadata> {
-    const validPath = validateInputPath(inputPath);
+    const { localPath, cleanup } = await ensureLocalMediaFile(inputPath);
     const ffprobePath = resolveFfprobePath();
 
     const args = [
@@ -18,7 +18,7 @@ export class MediaService {
       "-show_streams",
       "-print_format",
       "json",
-      validPath,
+      localPath,
     ];
 
     try {
@@ -91,8 +91,10 @@ export class MediaService {
         code: "UNSUPPORTED_MEDIA",
         message: `Failed to inspect media file: ${err instanceof Error ? err.message : String(err)}`,
         retryable: false,
-        details: { inputPath: validPath },
+        details: { inputPath },
       });
+    } finally {
+      await cleanup();
     }
   }
 }

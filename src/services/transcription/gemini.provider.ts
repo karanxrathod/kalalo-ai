@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { CaptionSegment, SupportedLanguage } from "../../types/index.js";
 import { KalaloError } from "../../utils/errors.js";
-import { ensureDir } from "../../utils/paths.js";
+import { ensureDir, ensureLocalMediaFile } from "../../utils/paths.js";
 import { env } from "../../config/env.js";
 import { resolveFfmpegPath, spawnSafe } from "../../utils/process.js";
 import { CaptionsService } from "../captions.service.js";
@@ -60,6 +60,8 @@ export class GeminiTranscriptionProvider implements TranscriptionProvider {
     const tempDir = ensureDir(env.tempDir);
     const tempAudioPath = path.join(tempDir, `gemini-audio-${crypto.randomUUID()}.mp3`);
 
+    const { localPath, cleanup: cleanupMedia } = await ensureLocalMediaFile(input.inputPath);
+
     try {
       input.onProgress?.({ stage: "extracting_audio", progress: 20 });
       const ffmpegPath = resolveFfmpegPath();
@@ -70,7 +72,7 @@ export class GeminiTranscriptionProvider implements TranscriptionProvider {
         [
           "-y",
           "-i",
-          input.inputPath,
+          localPath,
           "-vn",
           "-acodec",
           "libmp3lame",
@@ -266,6 +268,7 @@ Return ONLY a structured JSON array of subtitle segments.`;
     } finally {
       // Ensure temp audio file cleanup
       await fs.unlink(tempAudioPath).catch(() => {});
+      await cleanupMedia();
     }
   }
 }

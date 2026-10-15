@@ -1,6 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { DbService, UserRecord } from "./db.service.js";
+import { isSupabaseConfigured } from "../lib/supabase/client.js";
+import { getSupabaseAdminClient, getSupabaseServerClient } from "../lib/supabase/server.js";
 
 const JWT_SECRET_STRING = process.env.JWT_SECRET || process.env.KALALO_SECRET_KEY || "kalalo-creator-studio-secure-session-key-2026-antigravity";
 const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
@@ -35,7 +37,7 @@ export class AuthService {
   /**
    * Signs a JWT session token for an authenticated user.
    */
-  public static async createToken(user: UserRecord): Promise<string> {
+  public static async createToken(user: { id: string; email: string; name: string }): Promise<string> {
     return new SignJWT({
       userId: user.id,
       email: user.email,
@@ -68,9 +70,53 @@ export class AuthService {
 
   /**
    * Authenticates user with email and password.
+   * Uses Supabase Auth when configured, falling back to local DB.
    */
-  public static async login(email: string, password: string): Promise<{ user: UserRecord; token: string }> {
-    const user = DbService.findUserByEmail(email);
+  public static async login(
+    email: string,
+    password: string
+  ): Promise<{ user: { id: string; email: string; name: string; role?: string }; token: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabaseAdminClient() || getSupabaseServerClient();
+      if (supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+        if (error) {
+          throw new Error(error.message || "Invalid email or password.");
+        }
+
+        if (data.user) {
+          const name = data.user.user_metadata?.name || cleanEmail.split("@")[0];
+          const userObj = {
+            id: data.user.id,
+            email: data.user.email || cleanEmail,
+            name,
+            role: "creator",
+          };
+
+          // Ensure profile exists in profiles table
+          await supabase.from("profiles").upsert(
+            {
+              id: data.user.id,
+              display_name: name,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
+
+          const token = await this.createToken(userObj);
+          return { user: userObj, token };
+        }
+      }
+    }
+
+    // Fallback: local DbService
+    const user = DbService.findUserByEmail(cleanEmail);
     if (!user) {
       throw new Error("Invalid email or password.");
     }
@@ -86,16 +132,65 @@ export class AuthService {
 
   /**
    * Registers a new user.
+   * Uses Supabase Auth when configured, falling back to local DB.
    */
-  public static async register(email: string, name: string, password: string): Promise<{ user: UserRecord; token: string }> {
-    if (!email || !email.includes("@")) {
+  public static async register(
+    email: string,
+    name: string,
+    password: string
+  ): Promise<{ user: { id: string; email: string; name: string; role?: string }; token: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim() || cleanEmail.split("@")[0];
+
+    if (!cleanEmail || !cleanEmail.includes("@")) {
       throw new Error("Please provide a valid email address.");
     }
     if (!password || password.length < 6) {
       throw new Error("Password must be at least 6 characters long.");
     }
 
-    const user = DbService.createUser({ email, name, password });
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabaseAdminClient() || getSupabaseServerClient();
+      if (supabase) {
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: {
+            data: { name: cleanName },
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || "Registration failed.");
+        }
+
+        if (data.user) {
+          const userObj = {
+            id: data.user.id,
+            email: data.user.email || cleanEmail,
+            name: cleanName,
+            role: "creator",
+          };
+
+          // Upsert initial profile
+          await supabase.from("profiles").upsert(
+            {
+              id: data.user.id,
+              display_name: cleanName,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
+
+          const token = await this.createToken(userObj);
+          return { user: userObj, token };
+        }
+      }
+    }
+
+    // Fallback: local DbService
+    const user = DbService.createUser({ email: cleanEmail, name: cleanName, password });
     const token = await this.createToken(user);
     return { user, token };
   }
@@ -117,6 +212,25 @@ export class AuthService {
       const bearerToken = authHeader.slice(7).trim();
       const verified = await this.verifyToken(bearerToken);
       if (verified) return verified;
+    }
+
+    // 3. Check Supabase server client session if configured
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = getSupabaseServerClient();
+        if (supabase) {
+          const { data } = await supabase.auth.getUser();
+          if (data?.user) {
+            return {
+              userId: data.user.id,
+              email: data.user.email || "",
+              name: data.user.user_metadata?.name || data.user.email?.split("@")[0] || "Creator",
+            };
+          }
+        }
+      } catch {
+        // Fall through
+      }
     }
 
     return null;

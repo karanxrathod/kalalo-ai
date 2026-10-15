@@ -8,6 +8,7 @@ import { ProjectsService } from "@/src/services/projects.service";
 import { ProviderFactory } from "@/src/services/transcription/provider.factory";
 import { SettingsService } from "@/src/services/settings.service";
 import { AuthService } from "@/src/services/auth.service";
+import { SupabaseService } from "@/src/services/supabase.service";
 import { TranscriptionLanguage } from "@/src/types";
 
 export async function POST(request: NextRequest) {
@@ -45,12 +46,31 @@ export async function POST(request: NextRequest) {
     const chosenProvider = providerParam || publicSettings.provider || "gemini";
     const chosenLanguage = (languageParam || publicSettings.language || "auto") as TranscriptionLanguage;
 
-    // Create project in persistent store
-    const project = ProjectsService.createProject({
+    let storagePath: string | undefined = undefined;
+    let fileUrl: string | undefined = undefined;
+
+    if (SupabaseService.isEnabled() && userId) {
+      const storageUpload = await SupabaseService.uploadMediaToStorage(
+        userId,
+        safeName.replace(/\.[^/.]+$/, ""),
+        file.name,
+        Buffer.from(arrayBuffer),
+        file.type || "video/mp4"
+      );
+      if (storageUpload) {
+        storagePath = storageUpload.storagePath;
+        fileUrl = storageUpload.publicUrl;
+      }
+    }
+
+    // Create project in persistent store (Supabase or local DB)
+    const project = await ProjectsService.createProjectAsync({
       userId,
       name: file.name.replace(/\.[^/.]+$/, ""),
       fileName: file.name,
       filePath: targetPath,
+      storagePath,
+      fileUrl,
       durationSeconds: metadata.durationSeconds,
       width: metadata.video?.width || 1080,
       height: metadata.video?.height || 1920,
@@ -76,21 +96,21 @@ export async function POST(request: NextRequest) {
         detectedLanguage = result.detectedLanguage;
 
         // Update project with real segments
-        ProjectsService.updateProject(project.id, {
+        await ProjectsService.updateProjectAsync(project.id, {
           segments,
           status: "ready_to_edit",
           language: (detectedLanguage as any) || chosenLanguage,
-        });
+        }, userId);
       } catch (sttErr: unknown) {
         transcriptionError = sttErr instanceof Error ? sttErr.message : String(sttErr);
-        ProjectsService.updateProject(project.id, {
+        await ProjectsService.updateProjectAsync(project.id, {
           status: "uploaded",
           error: transcriptionError,
-        });
+        }, userId);
       }
     }
 
-    const updatedProject = ProjectsService.getProject(project.id) || project;
+    const updatedProject = (await ProjectsService.getProjectAsync(project.id, userId)) || project;
 
     return NextResponse.json({
       success: true,

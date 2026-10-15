@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import { AspectRatio, CaptionSegment, PresetStyle } from "../types/index.js";
 import { env } from "../config/env.js";
 import { KalaloError } from "../utils/errors.js";
-import { validateInputPath, validateOutputPath, ensureDir } from "../utils/paths.js";
+import { validateInputPath, validateOutputPath, ensureDir, ensureLocalMediaFile } from "../utils/paths.js";
 import { formatAssTimestamp } from "../utils/time.js";
 import { spawnSafe, resolveFfmpegPath } from "../utils/process.js";
 import { MediaService } from "./media.service.js";
@@ -159,16 +159,19 @@ export class RenderingService {
     const outputPath = validateOutputPath(options.outputPath, inputPath);
     const aspectRatio: AspectRatio = options.aspectRatio || (env.KALALO_DEFAULT_ASPECT_RATIO as AspectRatio) || "9:16";
 
-    options.onProgress?.({ stage: "inspecting_media", progress: 5 });
-    const mediaMeta = await MediaService.inspectMedia(inputPath);
-    if (!mediaMeta.hasVideo) {
-      throw new KalaloError({
-        code: "UNSUPPORTED_MEDIA",
-        message: "Input media has no video stream. Subtitle rendering requires a video source.",
-        retryable: false,
-        details: { inputPath },
-      });
-    }
+    const localInput = await ensureLocalMediaFile(inputPath);
+    try {
+      const effectiveInputPath = localInput.localPath;
+      options.onProgress?.({ stage: "inspecting_media", progress: 5 });
+      const mediaMeta = await MediaService.inspectMedia(effectiveInputPath);
+      if (!mediaMeta.hasVideo) {
+        throw new KalaloError({
+          code: "UNSUPPORTED_MEDIA",
+          message: "Input media has no video stream. Subtitle rendering requires a video source.",
+          retryable: false,
+          details: { inputPath },
+        });
+      }
 
     const duration = mediaMeta.durationSeconds > 0 ? mediaMeta.durationSeconds : 1.0;
 
@@ -235,7 +238,7 @@ export class RenderingService {
         tempMaskPath = path.join(tempDir, `kalalo-mask-${crypto.randomUUID()}.mp4`);
 
         await CutoutService.generateMaskVideo({
-          inputPath,
+          inputPath: effectiveInputPath,
           outputPath: tempMaskPath,
           trimStart: isTrimmed ? trimStart : undefined,
           trimEnd: isTrimmed ? trimEnd : undefined,
@@ -262,7 +265,7 @@ export class RenderingService {
         if (isTrimmed) {
           args.push("-ss", trimStart.toFixed(3), "-to", trimEnd.toFixed(3));
         }
-        args.push("-i", inputPath);
+        args.push("-i", effectiveInputPath);
         // Mask is already trimmed
         args.push("-i", tempMaskPath);
 
@@ -284,7 +287,7 @@ export class RenderingService {
         if (isTrimmed) {
           args.push("-ss", trimStart.toFixed(3), "-to", trimEnd.toFixed(3));
         }
-        args.push("-i", inputPath, "-vf", videoFilter);
+        args.push("-i", effectiveInputPath, "-vf", videoFilter);
 
         if (options.muteAudio) {
           args.push("-an");
@@ -370,6 +373,9 @@ export class RenderingService {
       if (tempMaskPath) {
         await fs.unlink(tempMaskPath).catch(() => {});
       }
+    }
+    } finally {
+      await localInput.cleanup();
     }
   }
 }

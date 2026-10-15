@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const session = await AuthService.getUserFromRequest(request);
-    const project = ProjectsService.getProject(params.id, session?.userId);
+    const project = await ProjectsService.getProjectAsync(params.id, session?.userId);
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
@@ -26,7 +26,7 @@ export async function PATCH(
   try {
     const session = await AuthService.getUserFromRequest(request);
     const body = await request.json();
-    const updated = ProjectsService.updateProject(params.id, body, session?.userId);
+    const updated = await ProjectsService.updateProjectAsync(params.id, body, session?.userId);
     if (!updated) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
@@ -43,7 +43,7 @@ export async function DELETE(
 ) {
   try {
     const session = await AuthService.getUserFromRequest(request);
-    const success = ProjectsService.deleteProject(params.id, session?.userId);
+    const success = await ProjectsService.deleteProjectAsync(params.id, session?.userId);
     if (!success) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }

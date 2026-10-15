@@ -27,6 +27,7 @@ tmp/
 temp/
 *.tmp
 *.log
+kalalo_database.json
 
 # Output Media & Render Files
 output/*
