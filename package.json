@@ -1,0 +1,65 @@
+{
+  "name": "kalalo",
+  "version": "0.1.0",
+  "description": "AI-powered captioning and subtitle-rendering studio and MCP server for creators",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "kalalo": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:mcp": "tsc -p tsconfig.server.json",
+    "build:all": "tsc -p tsconfig.server.json && next build",
+    "start": "next start",
+    "start:mcp": "node dist/index.js",
+    "dev:mcp": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:tools": "node scripts/test-all-tools.mjs",
+    "verify:mcp": "node scripts/verify-mcp-connection.mjs",
+    "generate:sample": "node scripts/generate-sample.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "captions",
+    "subtitles",
+    "ffmpeg",
+    "hinglish",
+    "hindi",
+    "ai",
+    "video-editor"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
+    "jose": "^6.2.12",
+    "lucide-react": "^1.57.0",
+    "next": "^14.2.23",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.13.9",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7"
+  }
+}

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing and Coverage
+coverage/
+
+# Next.js Build Output
+.next/
+out/
+build/
+dist/
+
+# Python Virtual Environments & Caches
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Local Scratch & One-Off Scripts
+scratch/
+
+# Temporary Files and Local Database Storage
+tmp/
+temp/
+*.tmp
+*.log
+
+# Output Media & Render Files
+output/*
+!output/.gitkeep
+
+# Environment and Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Operating System & IDE Files
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+.idea/
+.vscode/

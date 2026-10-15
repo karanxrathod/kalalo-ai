@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "kalalo": {
+      "command": "node",
+      "args": ["C:/Users/karan/OneDrive/Desktop/Kalalo/dist/index.js"],
+      "env": {
+        "KALALO_STT_PROVIDER": "mock",
+        "KALALO_DEFAULT_ASPECT_RATIO": "9:16",
+        "OPENAI_API_KEY": ""
+      }
+    }
+  }
+}
