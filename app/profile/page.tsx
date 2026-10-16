@@ -133,11 +133,23 @@ export default function ProfilePage() {
 
     setIsUpdatingPassword(true);
     try {
-      const supabase = getSupabaseBrowserClient();
-      if (supabase) {
-        const { error } = await supabase.auth.updateUser({ password: newPassword });
-        if (error) throw error;
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update password");
       }
+
+      // Also sync browser-side client session if present
+      try {
+        const supabase = getSupabaseBrowserClient();
+        if (supabase) {
+          await supabase.auth.updateUser({ password: newPassword });
+        }
+      } catch {}
 
       setPasswordSuccess(true);
       setNewPassword("");

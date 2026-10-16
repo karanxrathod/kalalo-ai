@@ -37,6 +37,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@modelcontextprotocol/sdk": "^1.6.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
@@ -52,8 +54,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.13.9",
     "@types/react": "^18.3.18",

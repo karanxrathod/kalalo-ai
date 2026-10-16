@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Lock, Mail, User, ArrowRight, CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Sparkles, Lock, Mail, User, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { getSupabaseBrowserClient } from "@/src/lib/supabase/client";
 
@@ -79,12 +79,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleFillDemo = () => {
-    setIsRegister(false);
-    setEmail("creator@kalalo.ai");
-    setPassword("Creator123!");
-    setError(null);
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-[#090B0E]">
@@ -275,18 +269,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Quick Demo Pre-fill */}
-            <div className="mt-6 pt-5 border-t border-slate-800 text-center">
-              <p className="text-xs text-slate-400 mb-2">Want to test with our pre-configured creator account?</p>
-              <button
-                type="button"
-                onClick={handleFillDemo}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-950/30 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-900/40 transition-colors"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />
-                <span>Fill Demo Creator Account (creator@kalalo.ai)</span>
-              </button>
-            </div>
 
             {/* Security Assurance */}
             <div className="mt-6 flex items-center justify-center gap-2 text-[11px] text-slate-500">

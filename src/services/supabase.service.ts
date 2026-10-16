@@ -48,6 +48,11 @@ export class SupabaseService {
           confidence: s.confidence ? Number(s.confidence) : undefined,
         }));
 
+      let streamUrl = p.file_url || "";
+      if (p.storage_path) {
+        streamUrl = `/api/media/stream?projectId=${p.id}`;
+      }
+
       return {
         id: p.id,
         userId: p.user_id,
@@ -55,7 +60,7 @@ export class SupabaseService {
         name: p.name,
         fileName: p.file_name,
         filePath: p.storage_path || p.file_url || "",
-        streamUrl: p.file_url || (p.storage_path ? `/api/media/stream?path=${encodeURIComponent(p.storage_path)}` : ""),
+        streamUrl,
         durationSeconds: Number(p.duration_seconds || 0),
         width: p.width || 1080,
         height: p.height || 1920,
@@ -90,7 +95,9 @@ export class SupabaseService {
       .eq("id", projectId);
 
     if (userId) {
-      query = query.or(`user_id.eq.${userId},user_id.eq.usr_creator_default,is_demo.eq.true`);
+      query = query.or(`user_id.eq.${userId},is_demo.eq.true`);
+    } else {
+      query = query.eq("is_demo", true);
     }
 
     const { data, error } = await query.single();
@@ -110,6 +117,12 @@ export class SupabaseService {
         confidence: s.confidence ? Number(s.confidence) : undefined,
       }));
 
+    let streamUrl = data.file_url || "";
+    if (data.storage_path) {
+      const signed = await this.getSignedMediaUrl(data.storage_path, 3600);
+      streamUrl = signed || `/api/media/stream?projectId=${data.id}`;
+    }
+
     return {
       id: data.id,
       userId: data.user_id,
@@ -117,7 +130,7 @@ export class SupabaseService {
       name: data.name,
       fileName: data.file_name,
       filePath: data.storage_path || data.file_url || "",
-      streamUrl: data.file_url || (data.storage_path ? `/api/media/stream?path=${encodeURIComponent(data.storage_path)}` : ""),
+      streamUrl,
       durationSeconds: Number(data.duration_seconds || 0),
       width: data.width || 1080,
       height: data.height || 1920,
@@ -303,7 +316,7 @@ export class SupabaseService {
     fileName: string,
     buffer: Buffer,
     contentType = "video/mp4"
-  ): Promise<{ storagePath: string; publicUrl: string } | null> {
+  ): Promise<{ storagePath: string; signedUrl: string } | null> {
     const supabase = this.getClient();
     if (!supabase) return null;
 
@@ -322,10 +335,17 @@ export class SupabaseService {
       return null;
     }
 
-    const { data } = supabase.storage.from("kalalo-media").getPublicUrl(storagePath);
+    const { data: signedData, error: signError } = await supabase.storage
+      .from("kalalo-media")
+      .createSignedUrl(storagePath, 3600);
+
+    if (signError || !signedData?.signedUrl) {
+      console.warn("[SupabaseService] Signed URL generation notice:", signError?.message);
+    }
+
     return {
       storagePath,
-      publicUrl: data.publicUrl,
+      signedUrl: signedData?.signedUrl || `/api/media/stream?projectId=${projectId}`,
     };
   }
 

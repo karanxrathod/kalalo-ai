@@ -116,6 +116,8 @@ export interface Project {
   name: string;
   fileName: string;
   filePath: string;
+  storagePath?: string;
+  fileUrl?: string;
   streamUrl: string;
   thumbnailUrl?: string;
   durationSeconds: number;

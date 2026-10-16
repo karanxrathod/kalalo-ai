@@ -17,8 +17,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const session = await AuthService.getUserFromRequest(request);
-    const userId = session?.userId;
-    const effectiveUserId = userId || "usr_creator_default";
+    if (!session?.userId) {
+      return NextResponse.json({ error: "Authentication required to upload media" }, { status: 401 });
+    }
+    const userId = session.userId;
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     if (SupabaseService.isEnabled()) {
       const storageUpload = await SupabaseService.uploadMediaToStorage(
-        effectiveUserId,
+        userId,
         safeName.replace(/\.[^/.]+$/, ""),
         file.name,
         Buffer.from(arrayBuffer),
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
       if (storageUpload) {
         storagePath = storageUpload.storagePath;
-        fileUrl = storageUpload.publicUrl;
+        fileUrl = storageUpload.signedUrl;
       }
     }
 

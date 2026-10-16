@@ -74,7 +74,8 @@ export class DbService {
   private static createInitialDatabase(): DatabaseSchema {
     const now = new Date().toISOString();
     const demoSalt = bcrypt.genSaltSync(10);
-    const demoPasswordHash = bcrypt.hashSync("Creator123!", demoSalt);
+    const randomSecret = crypto.randomBytes(32).toString("hex");
+    const demoPasswordHash = bcrypt.hashSync(randomSecret, demoSalt);
 
     const defaultUser: UserRecord = {
       id: "usr_creator_default",
@@ -165,6 +166,17 @@ export class DbService {
   public static findUserById(id: string): UserRecord | undefined {
     const db = this.loadDatabase();
     return db.users.find((u) => u.id === id);
+  }
+
+  public static updateUserPassword(userId: string, newPassword: string): boolean {
+    const db = this.loadDatabase();
+    const user = db.users.find((u) => u.id === userId);
+    if (!user) return false;
+    const salt = bcrypt.genSaltSync(10);
+    user.passwordHash = bcrypt.hashSync(newPassword, salt);
+    user.updatedAt = new Date().toISOString();
+    this.saveDatabase(db);
+    return true;
   }
 
   public static createUser(params: { email: string; name: string; password: string }): UserRecord {

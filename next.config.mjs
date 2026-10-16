@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  outputFileTracingIncludes: {
-    "/api/**/*": [
-      "./node_modules/@ffmpeg-installer/**/*",
-      "./node_modules/@ffprobe-installer/**/*",
-    ],
-  },
   experimental: {
+    outputFileTracingIncludes: {
+      "/api/**/*": [
+        "./node_modules/@ffmpeg-installer/**/*",
+        "./node_modules/@ffprobe-installer/**/*",
+      ],
+    },
     serverComponentsExternalPackages: [
       "@ffmpeg-installer/ffmpeg",
       "@ffprobe-installer/ffprobe",

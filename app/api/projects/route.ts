@@ -5,8 +5,10 @@ import { AuthService } from "@/src/services/auth.service";
 export async function GET(request: NextRequest) {
   try {
     const session = await AuthService.getUserFromRequest(request);
-    const userId = session?.userId;
-    const projects = await ProjectsService.listProjectsAsync(userId);
+    if (!session?.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const projects = await ProjectsService.listProjectsAsync(session.userId);
     return NextResponse.json({ projects });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -17,10 +19,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await AuthService.getUserFromRequest(request);
+    if (!session?.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const project = await ProjectsService.createProjectAsync({
       ...body,
-      userId: session?.userId || body.userId || "usr_creator_default",
+      userId: session.userId,
     });
     return NextResponse.json({ project }, { status: 201 });
   } catch (err: unknown) {
@@ -28,4 +33,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
