@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { getSupabaseAdminClient, getSupabaseServerClient } from "../lib/supabase/server.js";
 import { isSupabaseConfigured } from "../lib/supabase/client.js";
 import { CaptionSegment, Project, AspectRatio, SupportedLanguage, JobStatus, JobType } from "../types/index.js";
@@ -244,9 +245,13 @@ export class SupabaseService {
 
     // If segments were updated, sync them to caption_segments table
     if (updates.segments) {
-      const proj = await this.getProject(projectId);
-      if (proj) {
-        await this.saveCaptionSegments(projectId, proj.userId, updates.segments);
+      let targetUserId = userId;
+      if (!targetUserId) {
+        const { data: p } = await supabase.from("projects").select("user_id").eq("id", projectId).single();
+        if (p?.user_id) targetUserId = p.user_id;
+      }
+      if (targetUserId) {
+        await this.saveCaptionSegments(projectId, targetUserId, updates.segments);
       }
     }
 
@@ -286,7 +291,7 @@ export class SupabaseService {
     if (segments.length === 0) return true;
 
     const rows = segments.map((seg, index) => ({
-      id: seg.id || `seg-${Date.now()}-${index}`,
+      id: `${projectId}_seg_${index}_${crypto.randomUUID().slice(0, 8)}`,
       project_id: projectId,
       user_id: userId,
       start_time: Number(seg.start),
