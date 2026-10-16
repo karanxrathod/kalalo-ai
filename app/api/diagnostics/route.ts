@@ -85,16 +85,24 @@ export async function GET() {
         supabaseHealth.tables.jobs = !jRes.error;
         supabaseHealth.tables.user_settings = !uRes.error;
 
+        if (pRes.error || prRes.error || cRes.error || jRes.error || uRes.error) {
+          const firstErr = pRes.error || prRes.error || cRes.error || jRes.error || uRes.error;
+          supabaseHealth.error = `${firstErr?.message || "Unknown Postgrest error"} (${firstErr?.code || ""})`;
+        }
+
         // Check storage buckets
         const { data: buckets, error: bError } = await supabase.storage.listBuckets();
         if (!bError && buckets) {
           supabaseHealth.storageBucket.exists = buckets.some(
             (b: any) => b.id === "kalalo-media" || b.name === "kalalo-media"
           );
+        } else if (bError && !supabaseHealth.error) {
+          supabaseHealth.error = `Storage: ${bError.message}`;
         }
 
         supabaseHealth.connected = !pRes.error && !prRes.error;
       }
+
     } catch (err: unknown) {
       supabaseHealth.error = err instanceof Error ? err.message : String(err);
     }
