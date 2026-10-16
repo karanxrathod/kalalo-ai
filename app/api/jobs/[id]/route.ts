@@ -1,13 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { JobsService } from "@/src/services/jobs.service";
+import { SupabaseService } from "@/src/services/supabase.service";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const job = JobsService.getJob(params.id);
-    return NextResponse.json(job);
+    try {
+      const job = JobsService.getJob(params.id);
+      return NextResponse.json(job);
+    } catch (memErr) {
+      if (SupabaseService.isEnabled()) {
+        const supaJob = await SupabaseService.getJob(params.id);
+        if (supaJob) {
+          return NextResponse.json({
+            id: supaJob.id,
+            type: supaJob.type,
+            status: supaJob.status,
+            progress: supaJob.progress,
+            stage: supaJob.stage,
+            result: supaJob.result,
+            error: supaJob.error,
+            createdAt: supaJob.created_at,
+            startedAt: supaJob.started_at,
+            finishedAt: supaJob.completed_at,
+          });
+        }
+      }
+      throw memErr;
+    }
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },
@@ -31,3 +53,4 @@ export async function POST(
     );
   }
 }
+

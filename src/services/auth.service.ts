@@ -103,6 +103,7 @@ export class AuthService {
           await supabase.from("profiles").upsert(
             {
               id: data.user.id,
+              email: data.user.email || cleanEmail,
               display_name: name,
               updated_at: new Date().toISOString(),
             },
@@ -176,6 +177,7 @@ export class AuthService {
           await supabase.from("profiles").upsert(
             {
               id: data.user.id,
+              email: data.user.email || cleanEmail,
               display_name: cleanName,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),

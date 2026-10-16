@@ -447,8 +447,10 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredProjects.map((project) => {
                   const statusColors: Record<string, string> = {
+                    ready: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
                     ready_to_edit: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
                     transcribing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                    inspecting: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
                     completed: "bg-purple-500/10 text-purple-400 border-purple-500/20",
                     rendering: "bg-amber-500/10 text-amber-400 border-amber-500/20",
                     uploaded: "bg-slate-500/10 text-slate-400 border-slate-500/20",

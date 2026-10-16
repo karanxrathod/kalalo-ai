@@ -111,3 +111,6 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+export const PATCH = PUT;
+export const dynamic = "force-dynamic";
+

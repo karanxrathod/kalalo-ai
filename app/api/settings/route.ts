@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await AuthService.getUserFromRequest(request);
-    const userId = session?.userId || "usr_creator_default";
+    if (!session?.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
     const body = await request.json();
 
     if (body.geminiApiKey !== undefined) {
@@ -62,7 +65,10 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await AuthService.getUserFromRequest(request);
-    const userId = session?.userId || "usr_creator_default";
+    if (!session?.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
     SettingsService.removeGeminiApiKey(userId);
     const updated = SettingsService.getPublicSettings(userId);
     return NextResponse.json({ success: true, settings: updated });
@@ -73,4 +79,5 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
 
