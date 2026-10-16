@@ -72,6 +72,7 @@ export async function GET() {
       exists: false,
     },
     error: null as string | null,
+    rawProbe: null as any,
   };
 
   if (supabaseConfigured) {
@@ -98,10 +99,15 @@ export async function GET() {
         supabaseHealth.tableErrors.jobs = jRes.error ? `${jRes.error.message} (${jRes.error.code})` : null;
         supabaseHealth.tableErrors.user_settings = uRes.error ? `${uRes.error.message} (${uRes.error.code})` : null;
 
-        if (pRes.error || prRes.error || cRes.error || jRes.error || uRes.error) {
-          const firstErr = pRes.error || prRes.error || cRes.error || jRes.error || uRes.error;
-          supabaseHealth.error = `${firstErr?.message || "Unknown error"} [code: ${firstErr?.code || ""}]`;
-        }
+        supabaseHealth.rawProbe = {
+          status: pRes.status,
+          statusText: pRes.statusText,
+          error: pRes.error,
+          errorKeys: pRes.error ? Object.keys(pRes.error) : [],
+          errorString: String(pRes.error),
+          clientType: process.env.SUPABASE_SERVICE_ROLE_KEY ? "service_role" : "anon",
+        };
+
 
         // Check storage buckets
         const { data: buckets, error: bError } = await supabase.storage.listBuckets();
