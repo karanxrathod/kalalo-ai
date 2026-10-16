@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Film,
-  Laptop,
   Trash2,
   Edit3,
   ExternalLink,
@@ -211,7 +210,7 @@ export default function DashboardPage() {
       {/* Main Studio Viewport */}
       <main className="flex-1 px-6 md:px-12 py-6 max-w-7xl mx-auto w-full flex flex-col justify-between">
         <div className="space-y-6">
-          {/* Top Bar matching Kalakar reference: Search, Desktop App, Upgrade, Profile */}
+          {/* Top Bar: Search, Upgrade, Profile */}
           <header className="flex items-center justify-between gap-4 pb-3 border-b border-[#1A1C24]">
             {/* Search Bar */}
             <div className="relative flex-1 max-w-md">
@@ -228,19 +227,12 @@ export default function DashboardPage() {
             {/* Action buttons on top right */}
             <div className="flex items-center gap-3">
               <Link
-                href="/diagnostics"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14161E] hover:bg-[#1A1D28] border border-[#232634] text-xs font-semibold text-slate-300 transition-colors"
-              >
-                <Laptop className="w-3.5 h-3.5 text-slate-400" />
-                <span>Desktop App</span>
-              </Link>
-
-              <Link
                 href="/settings"
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 text-xs font-bold transition-all shadow-sm shadow-emerald-500/10"
               >
                 <span>Upgrade ↗</span>
               </Link>
+
 
               {/* Creator Profile Avatar */}
               <div className="flex items-center gap-2 pl-1">

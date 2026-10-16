@@ -10,7 +10,6 @@ import {
   Settings as SettingsIcon,
   Activity,
   Sparkles,
-  Laptop,
   HelpCircle,
   ExternalLink,
 } from "lucide-react";
@@ -89,29 +88,10 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Bottom Widgets matching Kalakar Reference */}
+      {/* Bottom User Session & Logout */}
       <div className="space-y-4 pt-4 border-t border-[#1B1E26]">
-        {/* Desktop App Widget */}
-        <div className="p-3 rounded-xl bg-[#13161F] border border-[#212430] space-y-2">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
-            <Laptop className="w-3.5 h-3.5 text-emerald-400" />
-            <span>DESKTOP APP</span>
-          </div>
-          <p className="text-[10px] text-slate-400 leading-tight">
-            Use Kalalo on your own computer with offline FFmpeg engine.
-          </p>
-          <div className="grid grid-cols-2 gap-1.5 pt-1">
-            <span className="py-1 px-2 rounded-lg bg-[#1B1E29] text-[10px] font-mono text-center text-slate-300 border border-[#282C3C]">
-              macOS
-            </span>
-            <span className="py-1 px-2 rounded-lg bg-emerald-500/10 text-[10px] font-mono text-center text-emerald-400 border border-emerald-500/20 font-bold">
-              Windows ✓
-            </span>
-          </div>
-        </div>
+        <div className="flex items-center justify-between pt-1 text-xs">
 
-        {/* User Session & Logout */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#1B1E26] text-xs">
           <Link
             href="/settings"
             className="flex items-center gap-2 hover:text-white text-slate-400 transition-colors truncate"
