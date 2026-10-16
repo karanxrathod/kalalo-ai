@@ -190,7 +190,10 @@ export class JobsService {
    * Lists jobs with optional filtering.
    */
   public static listJobs(filter?: { status?: JobStatus; limit?: number }): Job[] {
-    let all = Array.from(this.jobs.values()).map((j) => this.sanitizeJob(j));
+    let all = Array.from(this.jobs.values()).map((j) => {
+      this.checkJobTimeout(j);
+      return this.sanitizeJob(j);
+    });
 
     if (filter?.status) {
       all = all.filter((j) => j.status === filter.status);
@@ -204,6 +207,24 @@ export class JobsService {
     }
 
     return all;
+  }
+
+  private static checkJobTimeout(job: InternalJobRecord): void {
+    if (!this.isTerminal(job.status)) {
+      const ageMs = Date.now() - new Date(job.updatedAt).getTime();
+      const MAX_JOB_AGE_MS = 15 * 60 * 1000;
+      if (ageMs > MAX_JOB_AGE_MS) {
+        job.status = "failed";
+        job.stage = "timed_out";
+        job.error = {
+          code: "PROCESS_TIMEOUT",
+          message: "Operation exceeded maximum processing timeout",
+          retryable: true,
+        };
+        job.finishedAt = new Date().toISOString();
+        job.updatedAt = job.finishedAt;
+      }
+    }
   }
 
   private static getInternalJob(jobId: string): InternalJobRecord {
@@ -225,6 +246,7 @@ export class JobsService {
       });
     }
 
+    this.checkJobTimeout(job);
     return job;
   }
 

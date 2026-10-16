@@ -129,4 +129,19 @@ describe("JobsService State Machine", () => {
     const limited = JobsService.listJobs({ limit: 1 });
     expect(limited.length).toBe(1);
   });
+
+  it("automatically marks stale jobs exceeding 15 minutes as timed out", () => {
+    const job = JobsService.createJob("rendering");
+    JobsService.startJob(job.id);
+
+    // Artificially age the job updatedAt to 20 minutes ago
+    const internal = (JobsService as any).jobs.get(job.id);
+    internal.updatedAt = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+
+    const checked = JobsService.getJob(job.id);
+    expect(checked.status).toBe("failed");
+    expect(checked.stage).toBe("timed_out");
+    expect(checked.error?.code).toBe("PROCESS_TIMEOUT");
+  });
 });
+
