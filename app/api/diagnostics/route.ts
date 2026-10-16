@@ -99,6 +99,20 @@ export async function GET() {
         supabaseHealth.tableErrors.jobs = jRes.error ? `${jRes.error.message} (${jRes.error.code})` : null;
         supabaseHealth.tableErrors.user_settings = uRes.error ? `${uRes.error.message} (${uRes.error.code})` : null;
 
+        const sKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+        let sKeyInfo = null;
+        try {
+          const parts = sKey.split(".");
+          if (parts.length === 3) {
+            sKeyInfo = {
+              length: sKey.length,
+              payload: JSON.parse(Buffer.from(parts[1], "base64").toString()),
+              sigPrefix: parts[2].slice(0, 6),
+              sigSuffix: parts[2].slice(-6),
+            };
+          }
+        } catch {}
+
         supabaseHealth.rawProbe = {
           status: pRes.status,
           statusText: pRes.statusText,
@@ -106,7 +120,9 @@ export async function GET() {
           errorKeys: pRes.error ? Object.keys(pRes.error) : [],
           errorString: String(pRes.error),
           clientType: process.env.SUPABASE_SERVICE_ROLE_KEY ? "service_role" : "anon",
+          serviceKeyMetadata: sKeyInfo,
         };
+
 
 
         // Check storage buckets
