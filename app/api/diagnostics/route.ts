@@ -100,18 +100,23 @@ export async function GET() {
         supabaseHealth.tableErrors.user_settings = uRes.error ? `${uRes.error.message} (${uRes.error.code})` : null;
 
         const sKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-        let sKeyInfo = null;
+        const parts = sKey.split(".");
+        let parseErr = null;
+        let payload = null;
         try {
-          const parts = sKey.split(".");
-          if (parts.length === 3) {
-            sKeyInfo = {
-              length: sKey.length,
-              payload: JSON.parse(Buffer.from(parts[1], "base64").toString()),
-              sigPrefix: parts[2].slice(0, 6),
-              sigSuffix: parts[2].slice(-6),
-            };
-          }
-        } catch {}
+          payload = parts[1] ? JSON.parse(Buffer.from(parts[1], "base64").toString()) : null;
+        } catch (e: any) {
+          parseErr = e?.message;
+        }
+        const sKeyInfo = {
+          length: sKey.length,
+          partsCount: parts.length,
+          startsWithEy: sKey.startsWith("ey"),
+          firstChar: sKey.charCodeAt(0),
+          parseErr,
+          payload,
+        };
+
 
         supabaseHealth.rawProbe = {
           status: pRes.status,
