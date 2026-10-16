@@ -373,11 +373,17 @@ function EditorContent() {
           const p: Project | undefined = data?.project || data;
           if (p && (p.filePath || p.streamUrl || (p as any).fileUrl || (p as any).storagePath)) {
             const effectivePath = p.filePath || (p as any).storagePath || p.streamUrl || "";
+            const finalStreamUrl =
+              (p as any).fileUrl ||
+              (p.streamUrl?.startsWith("http") ? p.streamUrl : null) ||
+              p.streamUrl ||
+              `/api/media/stream?path=${encodeURIComponent(effectivePath)}`;
+
             setMediaPath(effectivePath);
             setFileName(p.fileName || "video.mp4");
             setDuration(p.durationSeconds || 5.4);
             setTrimEnd(p.durationSeconds || 5.4);
-            setStreamUrl(p.streamUrl || (p as any).fileUrl || `/api/media/stream?path=${encodeURIComponent(effectivePath)}`);
+            setStreamUrl(finalStreamUrl);
             if (p.aspectRatio) setAspectRatio(p.aspectRatio);
             if (p.presetId) {
               setSelectedPresetId(p.presetId);
@@ -398,9 +404,39 @@ function EditorContent() {
             } else if (effectivePath) {
               triggerTranscription(effectivePath, p.id);
             }
+          } else {
+            // Fallback to sessionStorage if project not found yet
+            const stored = typeof window !== "undefined" ? sessionStorage.getItem("kalalo_current_project") : null;
+            if (stored) {
+              try {
+                const parsed = JSON.parse(stored);
+                if (parsed.fileName) setFileName(parsed.fileName);
+                if (parsed.duration) {
+                  setDuration(parsed.duration);
+                  setTrimEnd(parsed.duration);
+                }
+                if (parsed.streamUrl) setStreamUrl(parsed.streamUrl);
+                if (Array.isArray(parsed.segments)) setSegments(parsed.segments);
+              } catch {}
+            }
           }
         })
-        .catch((e) => console.error(e));
+        .catch((e) => {
+          console.error(e);
+          const stored = typeof window !== "undefined" ? sessionStorage.getItem("kalalo_current_project") : null;
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (parsed.fileName) setFileName(parsed.fileName);
+              if (parsed.duration) {
+                setDuration(parsed.duration);
+                setTrimEnd(parsed.duration);
+              }
+              if (parsed.streamUrl) setStreamUrl(parsed.streamUrl);
+              if (Array.isArray(parsed.segments)) setSegments(parsed.segments);
+            } catch {}
+          }
+        });
       return;
     }
 

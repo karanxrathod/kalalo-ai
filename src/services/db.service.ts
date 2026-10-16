@@ -263,6 +263,8 @@ export class DbService {
     name?: string;
     fileName: string;
     filePath: string;
+    storagePath?: string;
+    fileUrl?: string;
     durationSeconds?: number;
     width?: number;
     height?: number;
@@ -278,6 +280,12 @@ export class DbService {
     const id = `proj-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
     const effectiveUserId = params.userId || "usr_creator_default";
 
+    const streamUrl =
+      params.fileUrl ||
+      (params.storagePath
+        ? `/api/media/stream?path=${encodeURIComponent(params.storagePath)}`
+        : `/api/media/stream?path=${encodeURIComponent(params.filePath)}`);
+
     const newProject: ProjectRecord = {
       id,
       userId: effectiveUserId,
@@ -285,7 +293,7 @@ export class DbService {
       name: params.name || params.fileName.replace(/\.[^/.]+$/, ""),
       fileName: params.fileName,
       filePath: params.filePath,
-      streamUrl: `/api/media/stream?path=${encodeURIComponent(params.filePath)}`,
+      streamUrl,
       durationSeconds: params.durationSeconds || 1.0,
       width: params.width || 1080,
       height: params.height || 1920,

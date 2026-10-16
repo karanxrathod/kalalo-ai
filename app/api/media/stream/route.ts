@@ -12,6 +12,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing path parameter" }, { status: 400 });
     }
 
+    // If path is already a remote HTTP/HTTPS URL, redirect directly
+    if (filePathParam.startsWith("http://") || filePathParam.startsWith("https://")) {
+      return NextResponse.redirect(filePathParam);
+    }
+
+    // If file does not exist locally (e.g. serverless cold start), check if it is in Supabase Storage
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (supabaseUrl && !fs.existsSync(filePathParam)) {
+      const publicStorageUrl = `${supabaseUrl}/storage/v1/object/public/kalalo-media/${filePathParam.replace(/^\/+/, "")}`;
+      return NextResponse.redirect(publicStorageUrl);
+    }
+
     const resolved = validateMediaServingPath(filePathParam);
     const stats = fs.statSync(resolved);
     const fileSize = stats.size;

@@ -37,7 +37,14 @@ export default function LoginPage() {
         throw oauthError;
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to initiate Google sign in");
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("provider is not enabled") || msg.includes("Unsupported provider")) {
+        setError(
+          "Google Sign-In is not enabled in your Supabase Auth dashboard yet (requires Google Cloud Console OAuth Client ID & Secret). Please sign in using Email & Password or use the Demo Creator Account below."
+        );
+      } else {
+        setError(msg || "Failed to initiate Google sign in");
+      }
       setIsGoogleLoading(false);
     }
   };

@@ -90,7 +90,7 @@ export class SupabaseService {
       .eq("id", projectId);
 
     if (userId) {
-      query = query.eq("user_id", userId);
+      query = query.or(`user_id.eq.${userId},user_id.eq.usr_creator_default,is_demo.eq.true`);
     }
 
     const { data, error } = await query.single();

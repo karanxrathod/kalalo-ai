@@ -29,7 +29,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Projects state
+  // User & Projects state
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -44,6 +45,16 @@ export default function DashboardPage() {
 
   // Menu popover state
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+  const fetchUserData = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) setCurrentUser(data.user);
+      }
+    } catch {}
+  };
 
   const fetchProjects = async () => {
     try {
@@ -60,6 +71,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    fetchUserData();
     fetchProjects();
   }, []);
 
@@ -264,12 +276,21 @@ export default function DashboardPage() {
 
 
               {/* Creator Profile Avatar */}
-              <div className="flex items-center gap-2 pl-1">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center font-bold text-black text-xs">
-                  K
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 pl-1 group hover:opacity-90 transition-opacity"
+                title="View Creator Profile"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center font-bold text-black text-xs shadow-sm ring-1 ring-emerald-500/30 group-hover:ring-emerald-400">
+                  {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "C"}
                 </div>
-                <span className="hidden md:inline text-xs font-semibold text-slate-300">Creator</span>
-              </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="text-xs font-bold text-slate-200 group-hover:text-emerald-400 transition-colors truncate max-w-[120px]">
+                    {currentUser?.name || "Creator"}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">Profile ↗</span>
+                </div>
+              </Link>
             </div>
           </header>
 

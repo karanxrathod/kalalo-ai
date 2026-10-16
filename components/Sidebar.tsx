@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
+  User,
   Film,
   SlidersHorizontal,
   Settings as SettingsIcon,
@@ -29,6 +30,7 @@ export function Sidebar() {
 
   const navItems = [
     { name: "Home", href: "/dashboard", icon: Home },
+    { name: "My Profile", href: "/profile", icon: User },
     { name: "Presets & Styles", href: "/presets", icon: SlidersHorizontal },
     { name: "Settings & AI Keys", href: "/settings", icon: SettingsIcon },
     { name: "Diagnostics", href: "/diagnostics", icon: Activity },
@@ -93,13 +95,13 @@ export function Sidebar() {
         <div className="flex items-center justify-between pt-1 text-xs">
 
           <Link
-            href="/settings"
+            href="/profile"
             className="flex items-center gap-2 hover:text-white text-slate-400 transition-colors truncate"
           >
-            <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-[10px] font-bold text-white uppercase shrink-0">
-              U
+            <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white uppercase shrink-0">
+              P
             </div>
-            <span className="truncate text-[11px] font-medium">Account Settings</span>
+            <span className="truncate text-[11px] font-medium">Creator Profile</span>
           </Link>
           <button
             type="button"

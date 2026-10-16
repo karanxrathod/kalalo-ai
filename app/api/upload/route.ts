@@ -11,10 +11,14 @@ import { AuthService } from "@/src/services/auth.service";
 import { SupabaseService } from "@/src/services/supabase.service";
 import { TranscriptionLanguage } from "@/src/types";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     const session = await AuthService.getUserFromRequest(request);
     const userId = session?.userId;
+    const effectiveUserId = userId || "usr_creator_default";
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -81,9 +85,9 @@ export async function POST(request: NextRequest) {
     let storagePath: string | undefined = undefined;
     let fileUrl: string | undefined = undefined;
 
-    if (SupabaseService.isEnabled() && userId) {
+    if (SupabaseService.isEnabled()) {
       const storageUpload = await SupabaseService.uploadMediaToStorage(
-        userId,
+        effectiveUserId,
         safeName.replace(/\.[^/.]+$/, ""),
         file.name,
         Buffer.from(arrayBuffer),
@@ -143,6 +147,9 @@ export async function POST(request: NextRequest) {
     }
 
     const updatedProject = (await ProjectsService.getProjectAsync(project.id, userId)) || project;
+    if (fileUrl && (!updatedProject.streamUrl || updatedProject.streamUrl.startsWith("/api/media/stream"))) {
+      updatedProject.streamUrl = fileUrl;
+    }
 
     return NextResponse.json({
       success: true,
