@@ -127,6 +127,7 @@ function EditorContent() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [mediaPath, setMediaPath] = useState<string>("");
   const [fileName, setFileName] = useState<string>("sample-video.mp4");
+  const [projectName, setProjectName] = useState<string>("Sample Project");
   const [duration, setDuration] = useState<number>(5.4);
   const [streamUrl, setStreamUrl] = useState<string>("");
   const [segments, setSegments] = useState<CaptionSegment[]>([]);
@@ -226,6 +227,7 @@ function EditorContent() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            name: projectName.trim() || fileName.replace(/\.[^/.]+$/, "") || "Untitled Project",
             segments,
             presetId: selectedPresetId,
             customPreset: currentStyle,
@@ -238,7 +240,7 @@ function EditorContent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: fileName.replace(/\.[^/.]+$/, "") || "Untitled Project",
+            name: projectName.trim() || fileName.replace(/\.[^/.]+$/, "") || "Untitled Project",
             fileName,
             filePath: mediaPath,
             streamUrl,
@@ -381,6 +383,7 @@ function EditorContent() {
 
             setMediaPath(effectivePath);
             setFileName(p.fileName || "video.mp4");
+            setProjectName(p.name || (p.fileName ? p.fileName.replace(/\.[^/.]+$/, "") : "Untitled Project"));
             setDuration(p.durationSeconds || 5.4);
             setTrimEnd(p.durationSeconds || 5.4);
             setStreamUrl(finalStreamUrl);
@@ -410,7 +413,10 @@ function EditorContent() {
             if (stored) {
               try {
                 const parsed = JSON.parse(stored);
-                if (parsed.fileName) setFileName(parsed.fileName);
+                if (parsed.fileName) {
+                  setFileName(parsed.fileName);
+                  setProjectName(parsed.name || parsed.fileName.replace(/\.[^/.]+$/, ""));
+                }
                 if (parsed.duration) {
                   setDuration(parsed.duration);
                   setTrimEnd(parsed.duration);
@@ -447,7 +453,10 @@ function EditorContent() {
         const parsed = JSON.parse(stored);
         if (parsed.id) setProjectId(parsed.id);
         if (parsed.mediaPath) setMediaPath(parsed.mediaPath);
-        if (parsed.fileName) setFileName(parsed.fileName);
+        if (parsed.fileName) {
+          setFileName(parsed.fileName);
+          setProjectName(parsed.name || parsed.fileName.replace(/\.[^/.]+$/, ""));
+        }
         if (parsed.duration) {
           setDuration(parsed.duration);
           setTrimEnd(parsed.duration);
@@ -949,9 +958,15 @@ function EditorContent() {
             <span className="text-base font-black tracking-tight text-white flex items-center gap-1">
               Kalalo <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">Studio</span>
             </span>
-            <span className="text-xs text-slate-400 font-medium truncate max-w-[200px]" title={fileName}>
-              / {fileName}
-            </span>
+            <span className="text-slate-600">/</span>
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="Project Name"
+              className="text-xs text-slate-200 font-medium bg-transparent border border-transparent hover:border-[#262A38] focus:border-emerald-500/50 focus:bg-[#12141C] focus:outline-none rounded px-2 py-1 transition-all max-w-[220px]"
+              title="Click to rename project"
+            />
           </div>
         </div>
 
@@ -1293,6 +1308,7 @@ function EditorContent() {
                 onPositionChange={handlePositionChange}
                 enablePersonCutout={enablePersonCutout}
                 personCutoutPreviewUrl={cutoutPreviewUrl}
+                selectedSegmentId={selectedSegmentId}
               />
             ) : (
               <div className="text-center p-8 rounded-2xl border border-dashed border-[#232736] bg-[#12141C]">

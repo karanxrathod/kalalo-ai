@@ -129,9 +129,8 @@ export class GeminiTranscriptionProvider implements TranscriptionProvider {
           configuredModel,
           "gemini-1.5-flash",
           "gemini-2.0-flash",
-          "gemini-3.5-flash-lite",
-          "gemini-2.5-flash",
-          "gemini-flash-latest",
+          "gemini-2.0-flash-lite",
+          "gemini-1.5-pro",
         ])
       );
 
@@ -272,7 +271,18 @@ Return ONLY a structured JSON array of subtitle segments.`;
 
       let parsedSegments: RawGeminiSegment[] = [];
       try {
-        parsedSegments = JSON.parse(textOutput);
+        let cleanText = textOutput.trim();
+        // Strip markdown code fences if present
+        if (cleanText.startsWith("```")) {
+          cleanText = cleanText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+        }
+        // Extract array substring if extraneous characters are present
+        const jsonStart = cleanText.indexOf("[");
+        const jsonEnd = cleanText.lastIndexOf("]");
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          cleanText = cleanText.slice(jsonStart, jsonEnd + 1);
+        }
+        parsedSegments = JSON.parse(cleanText);
       } catch (parseErr) {
         throw new KalaloError({
           code: "TRANSCRIPTION_FAILED",

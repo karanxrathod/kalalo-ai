@@ -14,6 +14,7 @@ interface VideoPlayerProps {
   onPositionChange?: (pos: { x: number; y: number }) => void;
   enablePersonCutout?: boolean;
   personCutoutPreviewUrl?: string | null;
+  selectedSegmentId?: string | null;
 }
 
 export function VideoPlayer({
@@ -26,6 +27,7 @@ export function VideoPlayer({
   onPositionChange,
   enablePersonCutout = false,
   personCutoutPreviewUrl = null,
+  selectedSegmentId = null,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,10 +85,12 @@ export function VideoPlayer({
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${ms}`;
   };
 
-  // Find active caption segment
-  const activeSegment = segments.find(
-    (seg) => currentTime >= seg.start && currentTime <= seg.end
-  ) || (segments.length > 0 ? segments[0] : null);
+  // Find active caption segment: synchronized during playback, selected segment when paused
+  const activeSegment =
+    segments.find((seg) => currentTime >= seg.start && currentTime <= seg.end) ||
+    (!isPlaying
+      ? (selectedSegmentId ? segments.find((seg) => seg.id === selectedSegmentId) : null) || (segments.length > 0 ? segments[0] : null)
+      : null);
 
   // Aspect ratio container dimensions
   const getAspectRatioClasses = () => {

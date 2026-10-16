@@ -141,27 +141,41 @@ export default function DashboardPage() {
       if (clientMeta.width) formData.append("width", String(clientMeta.width));
       if (clientMeta.height) formData.append("height", String(clientMeta.height));
 
-      // Simulate smooth upload progress
-      const progressTimer = setInterval(() => {
-        setProcessingProgress((prev) => {
-          if (prev < 40) return prev + 10;
-          if (prev < 80) return prev + 5;
-          return prev;
-        });
-      }, 300);
+      setProcessingStage(`Uploading video bytes (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`);
 
-      setProcessingStage("Extracting speech and transcribing with Gemini AI...");
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      const data = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/upload");
+        xhr.withCredentials = true;
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && event.total > 0) {
+            const pct = Math.round((event.loaded / event.total) * 100);
+            const scaledPct = Math.min(65, Math.max(10, Math.round(10 + pct * 0.55)));
+            setProcessingProgress(scaledPct);
+            setProcessingStage(`Uploading video bytes (${pct}% of ${(event.total / (1024 * 1024)).toFixed(1)}MB)...`);
+          }
+        };
+
+        xhr.onload = () => {
+          setProcessingProgress(75);
+          setProcessingStage("Extracting speech & transcribing audio with Gemini AI...");
+          try {
+            const json = JSON.parse(xhr.responseText);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(json);
+            } else {
+              reject(new Error(json.error || `Upload failed with HTTP ${xhr.status}`));
+            }
+          } catch {
+            reject(new Error(`Failed to parse upload response: ${xhr.statusText}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Network connection error during upload. Please verify your internet connection and retry."));
+        xhr.ontimeout = () => reject(new Error("Upload request timed out on the server. Please try with a shorter clip or retry."));
+        xhr.send(formData);
       });
-
-      clearInterval(progressTimer);
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
-      }
 
       setProcessingProgress(95);
       setProcessingStage("Validating generated subtitle segments...");
