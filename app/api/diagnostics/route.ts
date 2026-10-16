@@ -60,6 +60,13 @@ export async function GET() {
       jobs: false,
       user_settings: false,
     },
+    tableErrors: {
+      profiles: null as string | null,
+      projects: null as string | null,
+      caption_segments: null as string | null,
+      jobs: null as string | null,
+      user_settings: null as string | null,
+    },
     storageBucket: {
       name: "kalalo-media",
       exists: false,
@@ -72,11 +79,11 @@ export async function GET() {
       const supabase = getSupabaseAdminClient() || getSupabaseServerClient();
       if (supabase) {
         const [pRes, prRes, cRes, jRes, uRes] = await Promise.all([
-          supabase.from("profiles").select("id", { count: "exact", head: true }),
-          supabase.from("projects").select("id", { count: "exact", head: true }),
-          supabase.from("caption_segments").select("id", { count: "exact", head: true }),
-          supabase.from("jobs").select("id", { count: "exact", head: true }),
-          supabase.from("user_settings").select("user_id", { count: "exact", head: true }),
+          supabase.from("profiles").select("*", { count: "exact", head: true }),
+          supabase.from("projects").select("*", { count: "exact", head: true }),
+          supabase.from("caption_segments").select("*", { count: "exact", head: true }),
+          supabase.from("jobs").select("*", { count: "exact", head: true }),
+          supabase.from("user_settings").select("*", { count: "exact", head: true }),
         ]);
 
         supabaseHealth.tables.profiles = !pRes.error;
@@ -85,9 +92,15 @@ export async function GET() {
         supabaseHealth.tables.jobs = !jRes.error;
         supabaseHealth.tables.user_settings = !uRes.error;
 
+        supabaseHealth.tableErrors.profiles = pRes.error ? `${pRes.error.message} (${pRes.error.code})` : null;
+        supabaseHealth.tableErrors.projects = prRes.error ? `${prRes.error.message} (${prRes.error.code})` : null;
+        supabaseHealth.tableErrors.caption_segments = cRes.error ? `${cRes.error.message} (${cRes.error.code})` : null;
+        supabaseHealth.tableErrors.jobs = jRes.error ? `${jRes.error.message} (${jRes.error.code})` : null;
+        supabaseHealth.tableErrors.user_settings = uRes.error ? `${uRes.error.message} (${uRes.error.code})` : null;
+
         if (pRes.error || prRes.error || cRes.error || jRes.error || uRes.error) {
           const firstErr = pRes.error || prRes.error || cRes.error || jRes.error || uRes.error;
-          supabaseHealth.error = `${firstErr?.message || "Unknown Postgrest error"} (${firstErr?.code || ""})`;
+          supabaseHealth.error = `${firstErr?.message || "Unknown error"} [code: ${firstErr?.code || ""}]`;
         }
 
         // Check storage buckets
