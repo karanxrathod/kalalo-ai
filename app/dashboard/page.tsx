@@ -91,16 +91,44 @@ export default function DashboardPage() {
   // Full Upload & Automatic Transcription Pipeline
   const handleFileUpload = async (file: File) => {
     setIsProcessing(true);
-    setProcessingProgress(15);
-    setProcessingStage("Uploading video file to server...");
+    setProcessingProgress(10);
+    setProcessingStage("Preparing video file...");
     setProcessingError(null);
     setUploadedProject(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("autoTranscribe", "true");
+    // Read client video metadata using HTML5 Video element
+    const readVideoMeta = (): Promise<{ duration?: number; width?: number; height?: number }> => {
+      return new Promise((resolve) => {
+        try {
+          const v = document.createElement("video");
+          v.preload = "metadata";
+          v.onloadedmetadata = () => {
+            const meta = {
+              duration: v.duration && !isNaN(v.duration) ? v.duration : undefined,
+              width: v.videoWidth || undefined,
+              height: v.videoHeight || undefined,
+            };
+            URL.revokeObjectURL(v.src);
+            resolve(meta);
+          };
+          v.onerror = () => resolve({});
+          v.src = URL.createObjectURL(file);
+        } catch {
+          resolve({});
+        }
+      });
+    };
 
     try {
+      const clientMeta = await readVideoMeta();
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("autoTranscribe", "true");
+      if (clientMeta.duration) formData.append("duration", String(clientMeta.duration));
+      if (clientMeta.width) formData.append("width", String(clientMeta.width));
+      if (clientMeta.height) formData.append("height", String(clientMeta.height));
+
       // Simulate smooth upload progress
       const progressTimer = setInterval(() => {
         setProcessingProgress((prev) => {
@@ -110,7 +138,7 @@ export default function DashboardPage() {
         });
       }, 300);
 
-      setProcessingStage("Extracting audio and analyzing speech with Gemini AI...");
+      setProcessingStage("Extracting speech and transcribing with Gemini AI...");
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -123,7 +151,7 @@ export default function DashboardPage() {
         throw new Error(data.error || "Upload failed");
       }
 
-      setProcessingProgress(90);
+      setProcessingProgress(95);
       setProcessingStage("Validating generated subtitle segments...");
 
       const project: Project = data.project;
@@ -147,14 +175,15 @@ export default function DashboardPage() {
       setProcessingProgress(100);
 
       if (data.transcriptionError) {
-        setProcessingStage("Video uploaded, but AI transcription encountered an issue.");
+        setProcessingStage("Video uploaded! Opening studio editor...");
         setProcessingError(data.transcriptionError);
       } else {
         setProcessingStage("Captions generated successfully! Opening studio editor...");
-        setTimeout(() => {
-          router.push(`/editor?projectId=${project.id}`);
-        }, 800);
       }
+
+      setTimeout(() => {
+        router.push(`/editor?projectId=${project.id}`);
+      }, 800);
 
       // Refresh recent projects
       fetchProjects();

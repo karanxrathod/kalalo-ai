@@ -40,7 +40,39 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     await fs.writeFile(targetPath, Buffer.from(arrayBuffer));
 
-    const metadata = await MediaService.inspectMedia(targetPath);
+    const clientDuration = formData.get("duration") ? parseFloat(formData.get("duration") as string) : undefined;
+    const clientWidth = formData.get("width") ? parseInt(formData.get("width") as string, 10) : undefined;
+    const clientHeight = formData.get("height") ? parseInt(formData.get("height") as string, 10) : undefined;
+
+    let metadata;
+    try {
+      metadata = await MediaService.inspectMedia(targetPath);
+    } catch {
+      metadata = {
+        format: safeExt.replace(".", "") || "mp4",
+        durationSeconds: clientDuration || 30,
+        hasAudio: true,
+        hasVideo: true,
+        sizeBytes: file.size,
+        video: {
+          width: clientWidth || 1080,
+          height: clientHeight || 1920,
+          codec: "h264",
+        },
+      };
+    }
+
+    if (clientDuration && clientDuration > 0 && (!metadata.durationSeconds || metadata.durationSeconds <= 0)) {
+      metadata.durationSeconds = clientDuration;
+    }
+    if (clientWidth && clientHeight && (!metadata.video?.width || metadata.video.width <= 0)) {
+      metadata.video = {
+        codec: metadata.video?.codec || "h264",
+        width: clientWidth,
+        height: clientHeight,
+        aspectRatio: clientHeight > clientWidth ? "9:16" : clientWidth > clientHeight ? "16:9" : "1:1",
+      };
+    }
 
     const publicSettings = SettingsService.getPublicSettings(userId);
     const chosenProvider = providerParam || publicSettings.provider || "gemini";

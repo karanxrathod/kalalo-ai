@@ -65,35 +65,60 @@ export class GeminiTranscriptionProvider implements TranscriptionProvider {
       tempAudioPath = path.join(tempDir, `gemini-audio-${crypto.randomUUID()}.mp3`);
 
       input.onProgress?.({ stage: "extracting_audio", progress: 20 });
-      const ffmpegPath = resolveFfmpegPath();
+      let mediaBase64 = "";
+      let mediaMimeType = "audio/mp3";
 
-      // Safely extract audio as lightweight, high-speech-fidelity mono MP3
-      await spawnSafe(
-        ffmpegPath,
-        [
-          "-y",
-          "-i",
-          localPath,
-          "-vn",
-          "-acodec",
-          "libmp3lame",
-          "-ac",
-          "1",
-          "-ar",
-          "16000",
-          "-b:a",
-          "64k",
-          tempAudioPath,
-        ],
-        {
-          signal: input.signal,
-          timeoutMs: 60000,
+      try {
+        const ffmpegPath = resolveFfmpegPath();
+        await spawnSafe(
+          ffmpegPath,
+          [
+            "-y",
+            "-i",
+            localPath,
+            "-vn",
+            "-acodec",
+            "libmp3lame",
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-b:a",
+            "64k",
+            tempAudioPath,
+          ],
+          {
+            signal: input.signal,
+            timeoutMs: 60000,
+          }
+        );
+
+        const audioBuffer = await fs.readFile(tempAudioPath);
+        mediaBase64 = audioBuffer.toString("base64");
+        mediaMimeType = "audio/mp3";
+      } catch (ffmpegErr) {
+        console.warn(
+          `[GeminiProvider] FFmpeg audio extraction unavailable or failed: ${
+            ffmpegErr instanceof Error ? ffmpegErr.message : String(ffmpegErr)
+          }. Falling back to direct video stream upload to Gemini.`
+        );
+
+        const fileStats = await fs.stat(localPath);
+        if (fileStats.size > 30 * 1024 * 1024) {
+          throw new KalaloError({
+            code: "MEDIA_TOO_LARGE",
+            message: "Media file exceeds 30MB direct upload limit and FFmpeg is not available.",
+            retryable: false,
+          });
         }
-      );
+
+        const rawBuffer = await fs.readFile(localPath);
+        mediaBase64 = rawBuffer.toString("base64");
+        const ext = localPath.split(".").pop()?.toLowerCase();
+        mediaMimeType = ext === "webm" ? "video/webm" : ext === "mov" ? "video/quicktime" : ext === "mp3" ? "audio/mp3" : "video/mp4";
+      }
 
       input.onProgress?.({ stage: "uploading_to_gemini", progress: 40 });
-      const audioBuffer = await fs.readFile(tempAudioPath);
-      const audioBase64 = audioBuffer.toString("base64");
 
       const configuredModel =
         input.model || SettingsService.getPublicSettings().gemini.model || env.KALALO_GEMINI_MODEL || "gemini-1.5-flash";
@@ -141,8 +166,8 @@ Return ONLY a structured JSON array of subtitle segments.`;
             parts: [
               {
                 inlineData: {
-                  mimeType: "audio/mp3",
-                  data: audioBase64,
+                  mimeType: mediaMimeType,
+                  data: mediaBase64,
                 },
               },
               {
